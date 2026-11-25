@@ -1,0 +1,1 @@
+MD EEPROM: Sega/EA X24C01, Acclaim16 X24C02; page/ACK/STOP/restart/wrap/snapshot passed

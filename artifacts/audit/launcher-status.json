@@ -1,0 +1,12 @@
+{
+  "version": "0.8.0-rc.2",
+  "reset": "SW_RESET",
+  "internalFree": 55583,
+  "internalMinimum": 30303,
+  "psramFree": 20924792,
+  "rssi": -41,
+  "installerBusy": false,
+  "usbTransitionError": 0,
+  "batteryMv": 8228,
+  "batteryEstimate": 91
+}

@@ -1,0 +1,62 @@
+[submodule "components/jk/OpenJKDF2"]
+	path = components/jk/OpenJKDF2
+	url = https://github.com/esp-cpp/OpenJKDF2.git
+[submodule "components/mgs/mgs_reversing"]
+	path = components/mgs/mgs_reversing
+	url = https://github.com/esp-cpp/mgs_reversing.git
+	branch = esp32p4
+[submodule "components/mgs/psyz"]
+	path = components/mgs/psyz
+	url = https://github.com/esp-cpp/psyz.git
+	branch = esp32p4
+[submodule "components/tpm/tpm-decomp"]
+	path = components/tpm/tpm-decomp
+	url = https://github.com/esp-cpp/tpm-decomp.git
+	branch = main
+[submodule "components/genesis/gwenesis"]
+	path = components/genesis/gwenesis
+	url = https://github.com/esp-cpp/gwenesis.git
+	branch = esp32
+[submodule "components/pico8/femto8"]
+	path = components/pico8/femto8
+	url = https://github.com/esp-cpp/femto8.git
+	branch = esp32
+[submodule "components/nes/nofrendo"]
+	path = components/nes/nofrendo
+	url = https://github.com/esp-cpp/nofrendo.git
+	branch = main
+[submodule "components/gbc/gnuboy"]
+	path = components/gbc/gnuboy
+	url = https://github.com/esp-cpp/gnuboy.git
+	branch = main
+[submodule "components/msx/fmsx"]
+	path = components/msx/fmsx
+	url = https://github.com/esp-cpp/fmsx.git
+	branch = main
+[submodule "components/sms/smsplus"]
+	path = components/sms/smsplus
+	url = https://github.com/esp-cpp/smsplus.git
+	branch = main
+[submodule "components/doom/prboom"]
+	path = components/doom/prboom
+	url = https://github.com/esp-cpp/prboom.git
+	branch = main
+[submodule "components/darkforces/TheForceEngine"]
+	path = components/darkforces/TheForceEngine
+	url = https://github.com/esp-cpp/TheForceEngine.git
+	branch = main
+[submodule "components/scummvm/scummvm"]
+	path = components/scummvm/scummvm
+	url = https://github.com/esp-cpp/scummvm.git
+	branch = esp32p4
+[submodule "components/emulink"]
+	path = components/emulink
+	url = https://github.com/esp-cpp/emulink.git
+	branch = main
+[submodule "components/emu-ui"]
+	path = components/emu-ui
+	url = https://github.com/esp-cpp/emu-ui.git
+	branch = main
+[submodule "third_party/sm64-native-reference"]
+	path = third_party/sm64-native-reference
+	url = https://github.com/DynaMight1124/retro-go.git

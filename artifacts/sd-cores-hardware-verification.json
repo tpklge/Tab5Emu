@@ -1,0 +1,173 @@
+{
+  "profile": "sd-cores",
+  "version": "0.2.1-sd",
+  "sha256": "7737f7675e5a994f8b140b5a780a787fc844af59cae8e2085db08666c33e591c",
+  "elf_sha256": "2f36109e31bb87b94dfe27fbcd088e1164c4bf20764b74bcfc36d13ccb0e5d4e",
+  "image_bytes": 4030000,
+  "reservation_bytes": 4063232,
+  "jit_compiled": false,
+  "booted": true,
+  "other_apps_preserved": true,
+  "layout_unchanged": true,
+  "sd_cores": [
+    {
+      "core": "n64",
+      "file": "n64-318e007c3e53ca25f4083d09f2655af277e8b81278fd043ee6eaf47c366c0616.bin",
+      "bytes": 363776,
+      "load_address": 1210170496,
+      "sha256": "318e007c3e53ca25f4083d09f2655af277e8b81278fd043ee6eaf47c366c0616"
+    },
+    {
+      "core": "gba",
+      "file": "gba-62523ecadd515b3e43985a9302b0cd266c073bc078b049f63a8ea8b0fed00fcb.bin",
+      "bytes": 378496,
+      "load_address": 1210170496,
+      "sha256": "62523ecadd515b3e43985a9302b0cd266c073bc078b049f63a8ea8b0fed00fcb"
+    },
+    {
+      "core": "snes",
+      "file": "snes-614250719323d71ba4d0f38bbe3cf4869de00258a40a0923ce64961262e3c081.bin",
+      "bytes": 403200,
+      "load_address": 1210170496,
+      "sha256": "614250719323d71ba4d0f38bbe3cf4869de00258a40a0923ce64961262e3c081"
+    },
+    {
+      "core": "genesis",
+      "file": "genesis-6f3a966f3c03ae5aa7aea8418ed6b177aff70cfd5614e8bac79f77f327c6b60e.bin",
+      "bytes": 762624,
+      "load_address": 1210170496,
+      "sha256": "6f3a966f3c03ae5aa7aea8418ed6b177aff70cfd5614e8bac79f77f327c6b60e"
+    },
+    {
+      "core": "gbc",
+      "file": "gbc-510793d8b400bc33f893b50bbdd5cf83dcc76ec4de8f077a0f2019d5fc438db8.bin",
+      "bytes": 70912,
+      "load_address": 1210170496,
+      "sha256": "510793d8b400bc33f893b50bbdd5cf83dcc76ec4de8f077a0f2019d5fc438db8"
+    }
+  ],
+  "catalog_totals": {
+    "gb": 11,
+    "gbc": 15,
+    "gba": 16,
+    "snes": 11,
+    "megadrive": 17,
+    "n64": 22
+  },
+  "switching": {
+    "boot_cycles": 13,
+    "systems": [
+      "gb",
+      "gbc",
+      "snes",
+      "megadrive",
+      "gba",
+      "n64",
+      "gb",
+      "n64",
+      "gba",
+      "n64",
+      "snes",
+      "megadrive",
+      "gb"
+    ],
+    "truncated_module_rejected": true,
+    "restored_module_verified": true,
+    "recovery_passed": true,
+    "coredump_bytes": 0
+  },
+  "n64_diagnostic": {
+    "complete": true,
+    "a_changes_rdp_color": true,
+    "first_counter": 6,
+    "second_counter": 7,
+    "previous_battery_preserved": true,
+    "coredump_bytes": 0
+  },
+  "ui": {
+    "pagination_above_footer_lcd_verified": true,
+    "buttons_do_not_overlap_host_test": true,
+    "single_page_arrows_hidden_lcd_verified": true
+  },
+  "host_tests": {
+    "python": 71,
+    "cpp_suites": 12,
+    "c_suites": 2,
+    "n64_console_asan_ubsan": true
+  },
+  "sm64_comparison": {
+    "previous_elf": "917ed3a68e8bdabc1a602eb6846023d9057929c14a8e3a46ed54f71cc2550865",
+    "current_elf": "2f36109e31bb87b94dfe27fbcd088e1164c4bf20764b74bcfc36d13ccb0e5d4e",
+    "method": "Single physical runs; matching RDP-list ranges before input; approximate, no confidence interval",
+    "scenes": {
+      "title": {
+        "previous": {
+          "vi_per_second": 2.0601502153537044,
+          "interval_seconds": 61.16058870899724,
+          "vi_frames": 126,
+          "rdp_lists_first": 10526,
+          "rdp_lists_last": 67825
+        },
+        "current": {
+          "vi_per_second": 2.190200772473808,
+          "interval_seconds": 59.3552890830033,
+          "vi_frames": 130,
+          "rdp_lists_first": 10526,
+          "rdp_lists_last": 69662
+        },
+        "gain_percent": 6.31267352015763
+      },
+      "head": {
+        "previous": {
+          "vi_per_second": 1.081482550545621,
+          "interval_seconds": 80.44512595798005,
+          "vi_frames": 87,
+          "rdp_lists_first": 103296,
+          "rdp_lists_last": 198958
+        },
+        "current": {
+          "vi_per_second": 1.1604184619169307,
+          "interval_seconds": 80.14350258299964,
+          "vi_frames": 93,
+          "rdp_lists_first": 100237,
+          "rdp_lists_last": 198918
+        },
+        "gain_percent": 7.298861302152826
+      }
+    },
+    "elapsed_seconds": 315.73762312499457,
+    "file_select_visually_verified": true,
+    "head_visually_verified": true,
+    "gameplay_validated": false,
+    "audio": {
+      "source_rate": 32006,
+      "hardware_rate": 48000,
+      "source_frames": 332400,
+      "output_frames": 498517,
+      "dropped_bytes": 0,
+      "max_submit_gap_us": 3312998,
+      "clock_ticks": 0,
+      "clock_hz": 0
+    },
+    "audio_sink": {
+      "blocks": 18479,
+      "partial_blocks": 558,
+      "empty_blocks": 17332,
+      "missing_frames": 14288280,
+      "max_write_gap_us": 36946,
+      "write_errors": 0,
+      "late_blocks": 6150,
+      "late_frames": 1303168
+    },
+    "coredump_bytes": 0,
+    "after_state": "menu"
+  },
+  "complete": true,
+  "final_state": {
+    "state": "menu",
+    "filter": "all",
+    "catalog_total": 92,
+    "elf_sha256": "2f36109e31bb87b94dfe27fbcd088e1164c4bf20764b74bcfc36d13ccb0e5d4e",
+    "last_panic": ""
+  }
+}

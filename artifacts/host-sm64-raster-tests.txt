@@ -1,0 +1,3 @@
+Native raster 160x120: clipped fill, colored triangle and edge bounds passed
+Native raster 128x96: clipped fill, colored triangle and edge bounds passed
+Native raster 80x60: clipped fill, colored triangle and edge bounds passed

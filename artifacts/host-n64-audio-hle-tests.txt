@@ -1,0 +1,1 @@
+N64 ABI1 HLE: load/move/save PCM preserved, RDRAM/buffer/table/list bounds refused, unknown microcode fallback passed.

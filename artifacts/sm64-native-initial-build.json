@@ -1,0 +1,16 @@
+{
+  "project": "tab5-sm64",
+  "version": "0.1.0-native",
+  "image_bytes": 2396784,
+  "sha256": "8656adfa285447de4d98bb83c0adaf110b33b9d06795e823fd0945410179153b",
+  "elf_sha256": "8a320fb9dd291ad588d3bb0e78b5bdb20b25181e2ec98ecd25bc2ede64432be7",
+  "cores": [
+    {
+      "core": "sm64",
+      "file": "sm64-c949fa99590005a396742646bfa15f3a77bdaef5b23e43a00a25b779f411ece1.bin",
+      "bytes": 11453184,
+      "load_address": 1208857088,
+      "sha256": "c949fa99590005a396742646bfa15f3a77bdaef5b23e43a00a25b779f411ece1"
+    }
+  ]
+}

@@ -1,0 +1,204 @@
+{
+  "format": "tab5-n64-performance-comparison-v1",
+  "firmware": "0.2.3-perf",
+  "elf_sha256": "fe9092303ebe1f310840c135c280ea4a6be589a52d7993125864dd1d3678247a",
+  "cpu_mhz": 360,
+  "psram_bytes": 33554432,
+  "scene": "SM64 initial boot to about 180 VI; VI/s is not game FPS",
+  "variants": [
+    {
+      "name": "reference",
+      "config": [
+        0,
+        0,
+        1
+      ],
+      "vi_per_run_second": 5.8550204422701295,
+      "speedup": 1.0,
+      "metrics": {
+        "backend": "mupen-pure-daedalus-hle-software",
+        "instructions": 19610770,
+        "rsp_instructions": 3407441,
+        "rdp_lists": 0,
+        "rom_reads": 57,
+        "exceptions": 1137,
+        "pc": 2150087932,
+        "vi_frames": 181,
+        "vi_width": 320,
+        "ai_buffers": 151,
+        "core_bytes": 434696,
+        "hle_tasks": 47,
+        "hle_triangles": 36701,
+        "hle_pixels": 6289009,
+        "run_us": 30913641,
+        "rsp_lle_us": 2276050,
+        "graphics_hle_us": 13538745,
+        "audio_hle_us": 0,
+        "audio_hle_tasks": 0,
+        "fast_cpu": false,
+        "audio_hle": false,
+        "raster_step": 1
+      },
+      "coredump_bytes": 0
+    },
+    {
+      "name": "audio_hle",
+      "config": [
+        0,
+        1,
+        1
+      ],
+      "vi_per_run_second": 6.241470640278145,
+      "speedup": 1.0660032192574513,
+      "metrics": {
+        "backend": "mupen-pure-daedalus-hle-software",
+        "instructions": 19545667,
+        "rsp_instructions": 0,
+        "rdp_lists": 0,
+        "rom_reads": 57,
+        "exceptions": 1130,
+        "pc": 2147484032,
+        "vi_frames": 180,
+        "vi_width": 320,
+        "ai_buffers": 149,
+        "core_bytes": 434696,
+        "hle_tasks": 47,
+        "hle_triangles": 36701,
+        "hle_pixels": 6289009,
+        "run_us": 28839357,
+        "rsp_lle_us": 0,
+        "graphics_hle_us": 13547192,
+        "audio_hle_us": 243367,
+        "audio_hle_tasks": 148,
+        "fast_cpu": false,
+        "audio_hle": true,
+        "raster_step": 1
+      },
+      "coredump_bytes": 0
+    },
+    {
+      "name": "fast_cpu",
+      "config": [
+        1,
+        0,
+        1
+      ],
+      "vi_per_run_second": 6.61342240480627,
+      "speedup": 1.129530198914573,
+      "metrics": {
+        "backend": "mupen-pure-daedalus-hle-software",
+        "instructions": 19610770,
+        "rsp_instructions": 3407441,
+        "rdp_lists": 0,
+        "rom_reads": 57,
+        "exceptions": 1137,
+        "pc": 2150087932,
+        "vi_frames": 181,
+        "vi_width": 320,
+        "ai_buffers": 151,
+        "core_bytes": 434696,
+        "hle_tasks": 47,
+        "hle_triangles": 36701,
+        "hle_pixels": 6289009,
+        "run_us": 27368583,
+        "rsp_lle_us": 2283434,
+        "graphics_hle_us": 13569711,
+        "audio_hle_us": 0,
+        "audio_hle_tasks": 0,
+        "fast_cpu": true,
+        "audio_hle": false,
+        "raster_step": 1
+      },
+      "coredump_bytes": 0
+    },
+    {
+      "name": "fast_cpu_audio_hle",
+      "config": [
+        1,
+        1,
+        1
+      ],
+      "vi_per_run_second": 7.144393159192237,
+      "speedup": 1.220216603790744,
+      "metrics": {
+        "backend": "mupen-pure-daedalus-hle-software",
+        "instructions": 19610770,
+        "rsp_instructions": 0,
+        "rdp_lists": 0,
+        "rom_reads": 57,
+        "exceptions": 1137,
+        "pc": 2150087932,
+        "vi_frames": 181,
+        "vi_width": 320,
+        "ai_buffers": 151,
+        "core_bytes": 434696,
+        "hle_tasks": 47,
+        "hle_triangles": 36701,
+        "hle_pixels": 6289009,
+        "run_us": 25334552,
+        "rsp_lle_us": 0,
+        "graphics_hle_us": 13547905,
+        "audio_hle_us": 213028,
+        "audio_hle_tasks": 150,
+        "fast_cpu": true,
+        "audio_hle": true,
+        "raster_step": 1
+      },
+      "coredump_bytes": 0
+    },
+    {
+      "name": "fast_cpu_audio_hle_160",
+      "config": [
+        1,
+        1,
+        2
+      ],
+      "vi_per_run_second": 10.808719691117673,
+      "speedup": 1.8460601116068653,
+      "metrics": {
+        "backend": "mupen-pure-daedalus-hle-software",
+        "instructions": 19632344,
+        "rsp_instructions": 0,
+        "rdp_lists": 0,
+        "rom_reads": 57,
+        "exceptions": 1141,
+        "pc": 2150750656,
+        "vi_frames": 182,
+        "vi_width": 320,
+        "ai_buffers": 152,
+        "core_bytes": 434696,
+        "hle_tasks": 48,
+        "hle_triangles": 37534,
+        "hle_pixels": 4028513,
+        "run_us": 16838257,
+        "rsp_lle_us": 0,
+        "graphics_hle_us": 5025960,
+        "audio_hle_us": 213241,
+        "audio_hle_tasks": 151,
+        "fast_cpu": true,
+        "audio_hle": true,
+        "raster_step": 2
+      },
+      "coredump_bytes": 0
+    }
+  ],
+  "head_160": {
+    "sample_seconds": 34.396298166015185,
+    "vi_per_second": 3.488747522213435,
+    "graphics_tasks_per_second": 1.6280821770329363
+  },
+  "core_smoke": {
+    "complete": true,
+    "boots": 13,
+    "catalog_totals": {
+      "gb": 11,
+      "gbc": 15,
+      "gba": 16,
+      "snes": 11,
+      "megadrive": 17,
+      "n64": 22
+    },
+    "malformed_module_refused": true,
+    "coredump_bytes": 0
+  }
+}

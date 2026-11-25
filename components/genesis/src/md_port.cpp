@@ -1,0 +1,1551 @@
+// Local persistence adapter for the pinned Gwenesis port (GPLv3).
+#include "genesis.hpp"
+#include "battery_store.hpp"
+#include "md_sram.hpp"
+#include "md_eeprom.hpp"
+#include "md_pad_protocol.h"
+#include "md_tekken.hpp"
+extern "C" { extern Tab5MdPad tab5_md_pads[3]; void tab5_md_pad_scanline(void); void tab5_md_pad_mode(int); }
+void genesis_set_six_buttons(bool enabled){tab5_md_pad_mode(enabled);}
+#include "md_state.hpp"
+#include "md_bus_hooks.h"
+#include <array>
+#include "file_read.hpp"
+
+#pragma GCC optimize("Ofast")
+
+#include "genesis_shared_memory.hpp"
+#include "genesis_dualcore.h"
+
+#include <algorithm>
+#include <atomic>
+#include <cstring>
+#include <esp_cpu.h>
+#include <esp_heap_caps.h>
+#include <esp_rom_sys.h>
+
+#if GENESIS_DUAL_CORE
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/semphr.h"
+#endif
+
+extern "C" {
+/* Gwenesis Emulator */
+#include "m68k.h"
+#include "z80inst.h"
+#include "ym2612.h"
+#include "gwenesis_bus.h"
+#include "gwenesis_io.h"
+#include "gwenesis_vdp.h"
+#include "gwenesis_savestate.h"
+#include "gwenesis_sn76489.h"
+};
+
+#include <string>
+
+#include "box-emu.hpp"
+#include "statistics.hpp"
+
+// --- Per-frame time breakdown -----------------------------------------------
+// Cycle-counter accounting of where a frame goes, reported as one greppable
+// `[genesis perf] ...` line every GENESIS_PERF_REPORT_FRAMES frames (~5 s), so a
+// serial capture of a play session doubles as a profile (tools/perf_report.py
+// summarises/diffs them). Cost is one CCOUNT read per section per scanline
+// (~2 cycles each), i.e. well under 0.1% of a frame; set GENESIS_PERF=0 to
+// compile it out entirely. The flag is defined in gwenesis_vdp.h so the VDP's
+// own render-stage counters (vdp_stat_*) follow it too.
+#if GENESIS_PERF
+#ifndef GENESIS_PERF_REPORT_FRAMES
+#define GENESIS_PERF_REPORT_FRAMES 300
+#endif
+struct GenesisPerf {
+  // core 0 (CPU cycles)
+  uint32_t m68k{0};     // m68k_run() across all scanlines
+  uint32_t vdp{0};      // gwenesis_vdp_render_line() (planes + sprites -> palette indices)
+  uint32_t convert{0};  // genesis_convert_line() (indices -> RGB565 into the PSRAM frame)
+  uint32_t barrier{0};  // core 0 waiting for the core-1 sound frame to finish
+  uint32_t present{0};  // push_frame() + audio mix + play_audio()
+  // core 1 (CPU cycles) -- written by the sound task, read here at report time
+  uint32_t snd{0};      // whole sound frame (Z80 + SN76489 + YM2612 + leash)
+  uint32_t snd_leash{0}; // of which: waiting for core 0 to release the line
+  // wall clock
+  uint64_t frame_us{0}; // run_genesis_rom() excluding the pacing sleep
+  uint64_t sleep_us{0}; // pacing sleep
+  uint32_t frames{0};
+  uint32_t late{0};     // frames that overran the native frame period
+  uint32_t skipped{0};  // frames emulated without rendering pixels (display busy)
+  uint32_t dropped_at_start{0}; // BoxEmu::frames_dropped() when the window began
+  uint32_t blitted_at_start{0}; // BoxEmu::frames_blitted() when the window began
+  uint32_t blit_cycles_at_start{0}; // BoxEmu::blit_cycles() when the window began
+  // Z80 diagnostics (z80inst.c counters) at the start of the window
+  uint32_t z80_irq_at_start{0};
+  uint32_t z80_busreq_at_start{0};
+  uint32_t z80_halted_at_start{0};
+  uint32_t z80_wto_at_start{0};
+  uint32_t z80_ymw_at_start{0};
+  // VDP render stage cycles (gwenesis_vdp_gfx.c counters) at the start of the window
+  uint32_t vdp_planes_at_start{0};
+  uint32_t vdp_sprites_at_start{0};
+  uint32_t vdp_merge_at_start{0};
+};
+static GenesisPerf perf;
+#define PERF_NOW() esp_cpu_get_cycle_count()
+#define PERF_ACC(field, t0) (perf.field += (uint32_t)(PERF_NOW() - (t0)))
+
+static uint32_t perf_sound_queue_dropped() {
+#if GENESIS_DUAL_CORE
+  return genesis_sound_queue_dropped();
+#else
+  return 0;
+#endif
+}
+
+// Share of the 68000's cycles in the window that the wait-loop skip did not
+// have to emulate (0 when the core is built without M68K_IDLE_SKIP).
+static uint32_t idle_skip_percent() {
+#ifdef M68K_IDLE_SKIP
+  static uint32_t at_start = 0;
+  const uint32_t now = m68k_idle_skipped_cycles;
+  const uint64_t total = uint64_t(perf.frames ? perf.frames : 1) * LINES_PER_FRAME_NTSC * VDP_CYCLES_PER_LINE;
+  const uint32_t pct = uint32_t(uint64_t(now - at_start) * 100 / total);
+  at_start = now;
+  return pct;
+#else
+  return 0;
+#endif
+}
+
+// Print the per-frame averages for the last report window and start a new one.
+// Everything is in microseconds per frame so the buckets can be compared
+// directly against the frame period (16667 us NTSC / 20000 us PAL).
+static void genesis_perf_report() {
+  const uint32_t n = perf.frames ? perf.frames : 1;
+  const uint32_t ticks_per_us = esp_rom_get_cpu_ticks_per_us();
+  auto us = [&](uint32_t cycles) { return cycles / ticks_per_us / n; };
+  const uint32_t frame_us = perf.frame_us / n;
+  const uint32_t m68k = us(perf.m68k), vdp = us(perf.vdp), convert = us(perf.convert),
+                 barrier = us(perf.barrier), present = us(perf.present);
+  const int32_t other = (int32_t)frame_us - (int32_t)(m68k + vdp + convert + barrier + present);
+  const uint64_t wall_us = perf.frame_us + perf.sleep_us;
+  const float fps = wall_us ? (perf.frames * 1e6f) / wall_us : 0.0f;
+  // frames the video task was too slow to take (display-bound, not emulator-bound),
+  // and how long the video task spent per frame it did blit (core 1 CPU time,
+  // including waiting on the LCD SPI transactions)
+  auto &box = BoxEmu::get();
+  const uint32_t dropped_now = box.frames_dropped();
+  const uint32_t blitted_now = box.frames_blitted();
+  const uint32_t blit_cycles_now = box.blit_cycles();
+  const uint32_t blitted = blitted_now - perf.blitted_at_start;
+  const uint32_t blit_us = blitted ? (blit_cycles_now - perf.blit_cycles_at_start) / ticks_per_us / blitted : 0;
+  // VDP render stages, per DRAWN frame (the vdp bucket above is per frame
+  // including skipped ones)
+  const uint32_t drawn = perf.frames > perf.skipped ? perf.frames - perf.skipped : 1;
+  auto us_drawn = [&](uint32_t cycles) { return cycles / ticks_per_us / drawn; };
+  fmt::print("[genesis perf] fps={:.1f} frame={}us 68k={}us vdp={}us convert={}us barrier={}us present={}us other={}us"
+             " sleep={}us late={}/{} skipped={}/{} dropped={}/{} blit={}us | core1 snd={}us leash={}us | q_dropped={}"
+             " | z80 irq={} busreq={} halted={} wto={} ymw={}"
+             " | drawn planes={}us sprites={}us merge={}us"
+             " | idle_skip={}%"
+             " | int_free={} int_largest={}\n",
+             fps, frame_us, m68k, vdp, convert, barrier, present, other,
+             (uint32_t)(perf.sleep_us / n), perf.late, perf.frames, perf.skipped, perf.frames,
+             dropped_now - perf.dropped_at_start, perf.frames, blit_us,
+             us(perf.snd), us(perf.snd_leash), perf_sound_queue_dropped(),
+             z80_stat_irq_taken - perf.z80_irq_at_start, z80_stat_busreq - perf.z80_busreq_at_start,
+             z80_stat_halted_slices - perf.z80_halted_at_start, z80_stat_wait_timeout - perf.z80_wto_at_start,
+             z80_stat_ym_writes - perf.z80_ymw_at_start,
+             us_drawn(vdp_stat_planes_cycles - perf.vdp_planes_at_start),
+             us_drawn(vdp_stat_sprites_cycles - perf.vdp_sprites_at_start),
+             us_drawn(vdp_stat_merge_cycles - perf.vdp_merge_at_start),
+             idle_skip_percent(),
+             heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
+             heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
+  perf = GenesisPerf{};
+  perf.vdp_planes_at_start = vdp_stat_planes_cycles;
+  perf.vdp_sprites_at_start = vdp_stat_sprites_cycles;
+  perf.vdp_merge_at_start = vdp_stat_merge_cycles;
+  perf.dropped_at_start = dropped_now;
+  perf.blitted_at_start = blitted_now;
+  perf.blit_cycles_at_start = blit_cycles_now;
+  perf.z80_irq_at_start = z80_stat_irq_taken;
+  perf.z80_busreq_at_start = z80_stat_busreq;
+  perf.z80_halted_at_start = z80_stat_halted_slices;
+  perf.z80_wto_at_start = z80_stat_wait_timeout;
+  perf.z80_ymw_at_start = z80_stat_ym_writes;
+}
+#else
+#define PERF_NOW() 0u
+#define PERF_ACC(field, t0) ((void)(t0))
+#endif
+
+static constexpr int AUDIO_BUFFER_LENGTH = std::max(GWENESIS_AUDIO_BUFFER_LENGTH_NTSC, GWENESIS_AUDIO_BUFFER_LENGTH_PAL);
+static constexpr int AUDIO_OUTPUT_CHANNELS = 2;
+static constexpr int GENESIS_AUDIO_SAMPLE_STEP = 2;
+
+static constexpr size_t GENESIS_SCREEN_WIDTH = 320;
+static constexpr size_t GENESIS_VISIBLE_HEIGHT = 224;
+
+static bool genesis_initialized = false;
+static tab5::md::LinearSram cartridge_sram;
+static tab5::md::SerialEeprom cartridge_eeprom;
+static tab5::md::TekkenProtection cartridge_protection;
+static size_t cartridge_rom_bytes=0;
+static std::array<uint8_t,32> cartridge_hash{};
+static bool storage_ready=false;
+static std::atomic<uint32_t> emulated_frames{0};
+extern "C" { uint32_t tab5_md_fast_rom_end=0; }
+extern "C" uint32_t tab5_md_read8(uint32_t address) {
+  uint32_t value;
+  if(cartridge_protection.read_byte(address,value))return value;
+  if(cartridge_eeprom.read8(address,value))return value;
+  if(cartridge_sram.read8(address,value))return value;
+  address=cartridge_protection.rom_address(address);
+  return address<cartridge_rom_bytes?FETCH8ROM(address):0xff;
+}
+extern "C" int tab5_md_write8(uint32_t address,uint32_t value) {
+  if(cartridge_protection.write_byte(address,value))return true;
+  if(cartridge_eeprom.write8(address,value))return true;
+  return cartridge_sram.write8(address,value);
+}
+extern "C" int tab5_md_cart_read16(uint32_t address,uint32_t *value) {
+  return cartridge_eeprom.read16(address,*value) || cartridge_protection.read(address,*value);
+}
+extern "C" int tab5_md_cart_write16(uint32_t address,uint32_t value) {
+  return cartridge_eeprom.write16(address,value) || cartridge_protection.write(address,value);
+}
+
+
+// Approach B video path: gwenesis renders 8-bit palette indices into a
+// dedicated index buffer, and we convert each scanline to RGB565 on core 0 in
+// genesis_convert_line() right after it is rendered -- using the LIVE CRAM565,
+// which captures the per-line palette (e.g. the Sonic water line) for free. The
+// finished RGB565 frame_buffer is handed straight to the video task (no palette
+// conversion on core 1, so it stops contending with the core-1 sound task).
+static uint8_t *genesis_index_buffer = nullptr; // 8-bit index render target
+
+static int frame_buffer_index = 0;
+static uint8_t *frame_buffer = nullptr; // RGB565 output (double-buffered)
+
+// Skip pixel work when a presentation is already queued. The current RGB565
+// buffer must also be free of an in-flight video conversion (checked below).
+// CPU, sound, VDP registers, DMA and interrupts still advance on skipped frames.
+#ifndef GENESIS_SKIP_UNDISPLAYABLE_FRAMES
+#define GENESIS_SKIP_UNDISPLAYABLE_FRAMES 1
+#endif
+// Second skip rule: when the previous frame finished past its pacing deadline
+// the machine is running behind real time, and an emulator that runs behind
+// under-produces audio (the YM2612 generates one frame's worth of samples per
+// emulated frame), which is audible as stutter long before the picture
+// suffers. Skipping the next frame's render (~10 ms) buys that time back, so
+// heavy games (Sonic 3) hold 60 Hz emulation and clean audio at the cost of
+// fewer displayed frames. Never skip more than this many frames in a row, so
+// even a game whose 68000 alone cannot make 60 Hz keeps updating the screen.
+#ifndef GENESIS_MAX_CONSECUTIVE_SKIPS
+#define GENESIS_MAX_CONSECUTIVE_SKIPS 2
+#endif
+static bool render_frame = true; // decided once per frame in run_genesis_rom()
+static bool pacer_behind = false; // previous frame ended past its deadline
+static int consecutive_skips = 0;
+static GamepadState previous_gamepad_state = {};
+
+/// BEGIN GWENESIS EMULATOR
+
+extern int zclk;
+static int system_clock;
+int scan_line;
+
+int16_t *gwenesis_sn76489_buffer = nullptr;
+int sn76489_index;
+int sn76489_clock;
+int16_t *gwenesis_ym2612_buffer = nullptr;
+int ym2612_index;
+int ym2612_clock;
+
+// Dual-core split: core 0 runs the 68000 + VDP, core 1 runs the sound unit
+// (Z80 + YM2612 + SN76489). GENESIS_DUAL_CORE lives in genesis_dualcore.h. Set
+// it to 0 for the single-core fallback (used as the muted path and a known-good
+// reference). Only meaningful with GWENESIS_AUDIO_ACCURATE==0 (line-accurate
+// audio), the configured build.
+
+#if GENESIS_DUAL_CORE
+// Lock-free SPSC queue of 68000-issued sound-chip register writes. Producer is
+// core 0 (the 68k bus); consumer is the core-1 sound task. Entries are packed
+// as (kind<<16)|(addr<<8)|value. In GWENESIS_AUDIO_ACCURATE==0 the write
+// functions ignore their cycle target, so writes only need to be applied in
+// FIFO order (per-line granularity), not at an exact sample.
+static constexpr uint32_t SOUND_Q_SIZE = 1024; // power of two; 4 KB internal
+static constexpr uint32_t SOUND_Q_MASK = SOUND_Q_SIZE - 1;
+static uint32_t *sound_q = nullptr;
+static std::atomic<uint32_t> sound_q_head{0};    // consumer index (core 1)
+static std::atomic<uint32_t> sound_q_tail{0};    // producer index (core 0)
+static std::atomic<uint32_t> sound_q_dropped{0};
+static std::atomic<unsigned int> ym_status_snapshot{0};
+
+// Per-line lockstep leash. Core 0 publishes the index of the last scanline whose
+// 68000 step has completed; core 1 must not run a scanline's sound ahead of that,
+// so 68k->sound register writes (queued during m68k_run) and the 68k<->Z80
+// handoff stay aligned to the correct line instead of drifting up to a frame.
+static std::atomic<int> core0_line{-1};
+
+extern "C" void genesis_sound_queue_push(uint8_t kind, uint8_t addr, uint8_t value, int cycles) {
+  (void)cycles; // ignored in line-accurate mode; kept for API/future use
+  const uint32_t tail = sound_q_tail.load(std::memory_order_relaxed);
+  const uint32_t head = sound_q_head.load(std::memory_order_acquire);
+  if (tail - head >= SOUND_Q_SIZE) { // full: drop rather than block the 68k
+    sound_q_dropped.fetch_add(1, std::memory_order_relaxed);
+    return;
+  }
+  sound_q[tail & SOUND_Q_MASK] =
+    ((uint32_t)kind << 16) | ((uint32_t)addr << 8) | (uint32_t)value;
+  sound_q_tail.store(tail + 1, std::memory_order_release);
+}
+
+extern "C" void genesis_sound_queue_drain(void) {
+  uint32_t head = sound_q_head.load(std::memory_order_relaxed);
+  const uint32_t tail = sound_q_tail.load(std::memory_order_acquire);
+  for (; head != tail; ++head) {
+    const uint32_t e = sound_q[head & SOUND_Q_MASK];
+    const uint8_t kind = (uint8_t)(e >> 16);
+    const uint8_t addr = (uint8_t)(e >> 8);
+    const uint8_t value = (uint8_t)e;
+    if (kind == GEN_SND_YM2612)
+      YM2612Write(addr, value, 0);
+    else
+      gwenesis_SN76489_Write(value, 0);
+  }
+  sound_q_head.store(head, std::memory_order_release);
+}
+
+extern "C" void genesis_sound_queue_reset(void) {
+  sound_q_head.store(0, std::memory_order_relaxed);
+  sound_q_tail.store(0, std::memory_order_relaxed);
+}
+
+extern "C" uint32_t genesis_sound_queue_dropped(void) {
+  return sound_q_dropped.load(std::memory_order_relaxed);
+}
+
+extern "C" void genesis_ym2612_status_publish(unsigned int status) {
+  ym_status_snapshot.store(status, std::memory_order_relaxed);
+}
+
+extern "C" unsigned int genesis_ym2612_status_peek(void) {
+  return ym_status_snapshot.load(std::memory_order_relaxed);
+}
+#endif // GENESIS_DUAL_CORE
+
+static FILE *savestate_fp = NULL;
+static int savestate_errors = 0;
+
+// GW_TARGET=1 build only indexes 128*8*16 entries and stores values in 0..255,
+// so int16_t is sufficient. This is 32768 bytes vs the old 131072 bytes, which
+// makes it far more likely to land in internal RAM and halves the per-sample
+// LFO load width. (Previously declared int32_t[128*8*32] = 131072 bytes.)
+int16_t *lfo_pm_table = nullptr; // 128*8*16*sizeof(int16_t) = 32768 bytes
+
+static inline int16_t clamp_audio_sample(int sample) {
+  return (int16_t)std::clamp(sample, -32768, 32767);
+}
+
+extern unsigned char *gwenesis_vdp_regs; // [0x20];
+extern unsigned char *VRAM; // [VRAM_MAX_SIZE];
+extern unsigned short *CRAM; // [CRAM_MAX_SIZE];
+extern unsigned char *SAT_CACHE; // [SAT_CACHE_MAX_SIZE];
+extern unsigned short *fifo; // [FIFO_SIZE];
+extern unsigned int gwenesis_vdp_status;
+extern unsigned short *CRAM565; // [256];
+extern unsigned short *VSRAM; // [VSRAM_MAX_SIZE];
+extern unsigned int screen_width, screen_height;
+extern int hint_pending;
+
+// Convert one freshly-rendered scanline of palette indices to RGB565 into the
+// current frame_buffer, using the LIVE CRAM565 (so each line gets the palette in
+// effect when it was rendered -> per-line palette / water line for free). Runs
+// on core 0 right after gwenesis_vdp_render_line().
+static IRAM_ATTR void genesis_convert_line(int line) {
+  if (line < 0 || line >= (int)GENESIS_VISIBLE_HEIGHT) return;
+  // Single-line buffer: gwenesis rendered this scanline to offset 0 just now.
+  const uint8_t *src = genesis_index_buffer;
+  uint16_t *dst = reinterpret_cast<uint16_t*>(frame_buffer) + line * GENESIS_SCREEN_WIDTH;
+
+  // The VDP active width is 320 (H40) or 256 (H32). gwenesis renders the active
+  // pixels left-aligned (columns 0..w-1) at a fixed 320 stride, so an H32 game
+  // would otherwise appear shoved to the left with stale data on the right.
+  // Convert ONLY the active width (20% less work in H32) and center it in the
+  // 320-wide output with black pillarbox borders.
+  int w = (int)screen_width;
+  if (w < 0) w = 0; else if (w > (int)GENESIS_SCREEN_WIDTH) w = (int)GENESIS_SCREEN_WIDTH;
+  const int offset = (GENESIS_SCREEN_WIDTH - w) / 2; // 0 for H40, 32 for H32
+
+  // Pillarbox borders (also clears stale pixels when w < 320). offset is even
+  // (0 or 32) so the 32-bit dst pointer below stays aligned.
+  if (offset > 0) {
+    std::memset(dst, 0, offset * sizeof(uint16_t));
+    std::memset(dst + offset + w, 0, (GENESIS_SCREEN_WIDTH - offset - w) * sizeof(uint16_t));
+  }
+
+  // Convert the active region (centered). Runs on core 0 (already near the PAL
+  // budget) doing PSRAM->PSRAM, so cost is dominated by PSRAM transactions, not
+  // arithmetic: read 4 indices per 32-bit load, write 2 RGB565 px per 32-bit
+  // store to halve both transaction counts. CRAM565 is a tiny 256-entry table
+  // (stays hot in cache). src is the freshly-rendered line at offset 0 (4-byte
+  // aligned); dst+offset is 32-bit aligned given the DMA-aligned base and even offset.
+  const uint32_t *src32 = reinterpret_cast<const uint32_t*>(src);
+  uint32_t *dst32 = reinterpret_cast<uint32_t*>(dst + offset);
+  int x = 0;
+  for (; x + 8 <= w; x += 8) {
+    const uint32_t s0 = src32[0];
+    const uint32_t s1 = src32[1];
+    dst32[0] = (uint32_t)CRAM565[s0 & 0xFF]        | ((uint32_t)CRAM565[(s0 >> 8) & 0xFF]  << 16);
+    dst32[1] = (uint32_t)CRAM565[(s0 >> 16) & 0xFF]| ((uint32_t)CRAM565[(s0 >> 24) & 0xFF] << 16);
+    dst32[2] = (uint32_t)CRAM565[s1 & 0xFF]        | ((uint32_t)CRAM565[(s1 >> 8) & 0xFF]  << 16);
+    dst32[3] = (uint32_t)CRAM565[(s1 >> 16) & 0xFF]| ((uint32_t)CRAM565[(s1 >> 24) & 0xFF] << 16);
+    src32 += 2;
+    dst32 += 4;
+  }
+  // Scalar tail (w is a multiple of 8 for both H40/H32, so normally none).
+  uint16_t *dst16 = dst + offset + x;
+  for (; x < w; x++) *dst16++ = CRAM565[src[x]];
+}
+
+typedef struct {
+    char key[28];
+    uint32_t length;
+} svar_t;
+
+extern "C" SaveState* saveGwenesisStateOpenForRead(const char* fileName)
+{
+    return (SaveState*)1;
+}
+
+extern "C" SaveState* saveGwenesisStateOpenForWrite(const char* fileName)
+{
+    return (SaveState*)1;
+}
+
+extern "C" int saveGwenesisStateGet(SaveState* state, const char* tagName)
+{
+    int value = 0;
+    saveGwenesisStateGetBuffer(state, tagName, &value, sizeof(int));
+    return value;
+}
+
+extern "C" void saveGwenesisStateSet(SaveState* state, const char* tagName, int value)
+{
+    saveGwenesisStateSetBuffer(state, tagName, &value, sizeof(int));
+}
+
+extern "C" void saveGwenesisStateGetBuffer(SaveState* state, const char* tagName, void* buffer, int length)
+{
+    size_t initial_pos = ftell(savestate_fp);
+    bool from_start = false;
+    svar_t var;
+
+    // Odds are that calls to this func will be in order, so try searching from current file position.
+    while (!from_start || ftell(savestate_fp) < initial_pos)
+    {
+        if (!fread(&var, sizeof(svar_t), 1, savestate_fp))
+        {
+            if (!from_start)
+            {
+                fseek(savestate_fp, 0, SEEK_SET);
+                from_start = true;
+                continue;
+            }
+            break;
+        }
+        if (strncmp(var.key, tagName, sizeof(var.key)) == 0)
+        {
+            fread(buffer, std::min<int>(var.length, length), 1, savestate_fp);
+            // fmt::print("Loaded key '{}'\n", tagName);
+            return;
+        }
+        fseek(savestate_fp, var.length, SEEK_CUR);
+    }
+    fmt::print("Key {} NOT FOUND!\n", tagName);
+    savestate_errors++;
+}
+
+extern "C" void saveGwenesisStateSetBuffer(SaveState* state, const char* tagName, const void* buffer, int length)
+{
+    // TO DO: seek the file to find if the key already exists. It's possible it could be written twice.
+    svar_t var = {{0}, (uint32_t)length};
+    strncpy(var.key, tagName, sizeof(var.key) - 1);
+    fwrite(&var, sizeof(var), 1, savestate_fp);
+    fwrite(buffer, length, 1, savestate_fp);
+    // fmt::print("Saved key '{}'\n", tagName);
+}
+
+extern "C" void gwenesis_io_get_buttons()
+{
+}
+
+/// END GWENESIS EMULATOR
+
+void reset_genesis() {
+  cartridge_protection.bits=0;
+  cartridge_eeprom.reset();
+  reset_emulation();
+}
+
+// 68000 clock as a % of stock (genesis_set_cpu_percent()); kept across games
+static int cpu_percent = 100;
+
+static void apply_cpu_percent() {
+#ifdef M68K_OVERCLOCK_SHIFT
+  // cycles charged per instruction scale by 100 / percent, so more
+  // instructions fit in each scanline's share of the frame
+  m68k->cycle_ratio = (100 << M68K_OVERCLOCK_SHIFT) / cpu_percent;
+#endif
+}
+
+void genesis_set_cpu_percent(int percent) {
+  cpu_percent = std::clamp(percent, 100, 200);
+  fmt::print("[genesis] 68000 clock {}%\n", cpu_percent);
+  if (genesis_initialized) {
+    apply_cpu_percent();
+  }
+}
+
+static void reset_genesis_runtime_state() {
+  system_clock = 0;
+  scan_line = 0;
+  frame_buffer_index = 0;
+  previous_gamepad_state = {};
+
+  zclk = 0;
+  ym2612_index = 0;
+  ym2612_clock = 0;
+  sn76489_index = 0;
+  sn76489_clock = 0;
+
+  if (gwenesis_sn76489_buffer) {
+    std::memset(gwenesis_sn76489_buffer, 0, AUDIO_BUFFER_LENGTH * sizeof(int16_t));
+  }
+  if (gwenesis_ym2612_buffer) {
+    std::memset(gwenesis_ym2612_buffer, 0, AUDIO_BUFFER_LENGTH * sizeof(int16_t));
+  }
+
+  for (int i = 0; i < 8; i++) {
+    gwenesis_io_pad_release_button(0, i);
+  }
+}
+
+static void *allocate_hot_memory(size_t size, const char *name = "hot") {
+  // internal only while the system keeps its headroom (GENESIS_INTERNAL_RESERVE_BYTES)
+  void *ptr = genesis_internal_has_headroom(size)
+    ? heap_caps_malloc(size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT) : nullptr;
+  const bool internal = (ptr != nullptr);
+  if (!ptr) {
+    ptr = heap_caps_malloc(size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+  }
+  fmt::print("[genesis mem] {}: {} bytes -> {}\n", name, size,
+             internal ? "INTERNAL" : (ptr ? "PSRAM" : "FAILED"));
+  return ptr;
+}
+
+static void *allocate_shared_hot_memory(size_t size, shared_mem_region_t region = SHARED_MEM_DEFAULT) {
+  shared_mem_request_t request = {
+    .size = size,
+    .region = region,
+    .storage = SHARED_MEM_INTERNAL,
+  };
+  void *ptr = genesis_internal_has_headroom(size) ? shared_mem_allocate(&request) : nullptr;
+  if (!ptr) {
+    // degrade to PSRAM rather than fail init (see genesis_shared_memory.cpp)
+    request.storage = SHARED_MEM_PSRAM;
+    ptr = shared_mem_allocate(&request);
+    fmt::print("[genesis mem] audio buffer: {} bytes -> {}\n", size, ptr ? "PSRAM" : "FAILED");
+  }
+  return ptr;
+}
+
+// Line-interrupt / palette diagnostics: a `[genesis hint]` line every
+// GENESIS_HINT_DEBUG_FRAMES frames with how many frames raised a visible-line
+// H-int, on which lines, how many were held back by a pending V-int, and how
+// many frames changed the palette mid-screen (water). Debug aid only.
+#ifndef GENESIS_HINT_DEBUG
+#define GENESIS_HINT_DEBUG 0
+#endif
+#if GENESIS_HINT_DEBUG
+static constexpr uint32_t GENESIS_HINT_DEBUG_FRAMES = 60;
+struct GenesisHintDebug {
+  uint32_t frames{0};
+  uint32_t hint_frames{0};      // frames with >= 1 visible-line H-int raised
+  uint32_t hint_blocked{0};     // H-ints not raised because V-int was pending
+  uint32_t hint_off_frames{0};  // frames with reg0 H-int enable clear at line 0
+  uint32_t vpend_at_start{0};   // frames that began with V-int still pending
+  uint32_t pal_changed{0};      // frames whose CRAM changed during active display
+  int first_min{999}, first_max{-1};
+  uint32_t reg10_min{255}, reg10_max{0};
+  bool this_frame_hint{false};
+  uint32_t cram_sum{0};
+};
+static GenesisHintDebug hint_dbg;
+static uint32_t hint_dbg_cram_sum() {
+  uint32_t sum = 0;
+  for (int i = 0; i < 64; ++i) sum = sum * 31 + CRAM[i];
+  return sum;
+}
+static void hint_dbg_frame_start() {
+  auto &d = hint_dbg;
+  d.frames++;
+  d.this_frame_hint = false;
+  if (gwenesis_vdp_status & STATUS_VIRQPENDING) d.vpend_at_start++;
+  if (!REG0_LINE_INTERRUPT) d.hint_off_frames++;
+  const uint32_t r10 = REG10_LINE_COUNTER;
+  if (r10 < d.reg10_min) d.reg10_min = r10;
+  if (r10 > d.reg10_max) d.reg10_max = r10;
+  d.cram_sum = hint_dbg_cram_sum();
+}
+static void hint_dbg_hint(int line, bool raised) {
+  auto &d = hint_dbg;
+  if (!raised) { d.hint_blocked++; return; }
+  if (!d.this_frame_hint) {
+    d.this_frame_hint = true;
+    d.hint_frames++;
+    if (line < d.first_min) d.first_min = line;
+    if (line > d.first_max) d.first_max = line;
+  }
+}
+static void hint_dbg_active_end() {
+  auto &d = hint_dbg;
+  if (hint_dbg_cram_sum() != d.cram_sum) d.pal_changed++;
+  if (d.frames >= GENESIS_HINT_DEBUG_FRAMES) {
+    fmt::print("[genesis hint] frames={} hint={} first_line={}..{} blocked={} hint_off={} vpend_start={} pal_changed={} reg10={}..{}\n",
+               d.frames, d.hint_frames, d.first_min, d.first_max, d.hint_blocked, d.hint_off_frames,
+               d.vpend_at_start, d.pal_changed, d.reg10_min, d.reg10_max);
+    d = GenesisHintDebug{};
+  }
+}
+#define HINT_DBG(x) x
+#else
+#define HINT_DBG(x)
+#endif
+
+// Master cycles into line 224 at which V-int is asserted (Genesis Plus GX's
+// value); see the comment at its use in the frame loops below.
+static constexpr unsigned int GENESIS_VINT_DELAY_CYCLES = 788;
+
+#if !GENESIS_DUAL_CORE && GWENESIS_AUDIO_ACCURATE == 0
+static IRAM_ATTR void run_genesis_frame_sound_on_no_frameskip(int screen_height, int lines_per_frame) {
+  static constexpr int vdp_cycles_per_line = VDP_CYCLES_PER_LINE;
+  int hint_counter = REG10_LINE_COUNTER;
+
+  scan_line = 0;
+  for (; scan_line < screen_height; ++scan_line) {
+    system_clock += vdp_cycles_per_line;
+
+    m68k_run(system_clock);
+    tab5_md_pad_scanline();
+    z80_run(system_clock);
+    gwenesis_SN76489_run(system_clock);
+    ym2612_run(system_clock);
+    // The line counter is reloaded from reg 10 at line 0 AFTER the 68k has run
+    // it (as on hardware and in the slow path below): Sonic 3 sets the water
+    // line from its V-int during line 0, and loading the counter before that
+    // write made the water appear only on every other frame.
+    if (scan_line == 0) hint_counter = REG10_LINE_COUNTER;
+    gwenesis_vdp_render_line(scan_line);
+    genesis_convert_line(scan_line);
+
+    if (--hint_counter < 0) {
+      if (REG0_LINE_INTERRUPT != 0) {
+        hint_pending = 1;
+        HINT_DBG(hint_dbg_hint(scan_line, (gwenesis_vdp_status & STATUS_VIRQPENDING) == 0));
+        if ((gwenesis_vdp_status & STATUS_VIRQPENDING) == 0)
+          m68k_update_irq(4);
+      }
+      hint_counter = REG10_LINE_COUNTER;
+    }
+  }
+
+  // Real hardware asserts V-int ~788 master cycles into the first blanking
+  // line, so a line interrupt raised at the end of the last visible line is
+  // taken FIRST. Asserting V-int right away inverts that order: Sonic 2 / 3 put
+  // the water line at line 223 when the water is off screen, and their H-int
+  // (underwater palette upload) then ran after the V-int had restored the
+  // normal palette -> the whole next frame was drawn with the water palette.
+  HINT_DBG(hint_dbg_active_end());
+  m68k_run(system_clock + GENESIS_VINT_DELAY_CYCLES);
+
+  if (REG1_VBLANK_INTERRUPT != 0) {
+    gwenesis_vdp_status |= STATUS_VIRQPENDING;
+    m68k_set_irq(6);
+  }
+  z80_irq_line(1);
+
+  if (scan_line < lines_per_frame) {
+    system_clock += vdp_cycles_per_line;
+
+    m68k_run(system_clock);
+    tab5_md_pad_scanline();
+    z80_run(system_clock);
+    gwenesis_SN76489_run(system_clock);
+    ym2612_run(system_clock);
+
+    if (--hint_counter < 0) {
+      if (REG0_LINE_INTERRUPT != 0) {
+        hint_pending = 1;
+        if ((gwenesis_vdp_status & STATUS_VIRQPENDING) == 0)
+          m68k_update_irq(4);
+      }
+      // (no hint_counter reset here: it is not read again this frame)
+    }
+
+    ++scan_line;
+    // (the Z80 V-int stays asserted until taken -- see sound_unit_run_frame)
+  }
+
+  for (; scan_line < lines_per_frame; ++scan_line) {
+    system_clock += vdp_cycles_per_line;
+
+    m68k_run(system_clock);
+    tab5_md_pad_scanline();
+    z80_run(system_clock);
+    gwenesis_SN76489_run(system_clock);
+    ym2612_run(system_clock);
+  }
+}
+#endif
+
+#if GENESIS_DUAL_CORE && GWENESIS_AUDIO_ACCURATE == 0
+// --- Dual-core frame execution (behind GENESIS_DUAL_CORE) -------------------
+//
+// The single-core loop above interleaves the 68k+VDP and the sound unit per
+// scanline. For the dual-core split we run them as two independent per-frame
+// loops that march through the SAME deterministic per-line clock
+// (line*VDP_CYCLES_PER_LINE), so neither shares a clock write with the other:
+//   - cpu_vdp_run_frame()    on core 0: 68000 + VDP render + 68k IRQs.
+//   - sound_unit_run_frame() on core 1: Z80 + SN76489 + YM2612 + Z80 IRQs.
+// The IRQ lines split cleanly by target CPU (m68k_set_irq/m68k_update_irq vs
+// z80_irq_line). cpu_vdp owns the global scan_line (used by the VDP); the sound
+// unit uses a private loop counter and clock so it never touches scan_line or
+// system_clock.
+
+// Core 0: 68000 + VDP. Owns system_clock and scan_line.
+static IRAM_ATTR void cpu_vdp_run_frame(int screen_height, int lines_per_frame) {
+  static constexpr int vdp_cycles_per_line = VDP_CYCLES_PER_LINE;
+  int hint_counter = REG10_LINE_COUNTER;
+
+  scan_line = 0;
+  for (; scan_line < screen_height; ++scan_line) {
+    system_clock += vdp_cycles_per_line;
+    uint32_t t0 = PERF_NOW();
+    m68k_run(system_clock);
+    tab5_md_pad_scanline();
+    // Release this line to the sound core: its 68k->sound writes are now queued.
+    core0_line.store(scan_line, std::memory_order_release);
+    PERF_ACC(m68k, t0);
+    // The line counter is reloaded from reg 10 at line 0 AFTER the 68k has run
+    // it (as on hardware and in the slow path): Sonic 3 sets the water
+    // line from its V-int during line 0, and loading the counter before that
+    // write made the water appear only on every other frame.
+    if (scan_line == 0) hint_counter = REG10_LINE_COUNTER;
+    if (render_frame) {
+      uint32_t t1 = PERF_NOW();
+      gwenesis_vdp_render_line(scan_line);
+      uint32_t t2 = PERF_NOW();
+      PERF_ACC(vdp, t1);
+      genesis_convert_line(scan_line);
+      PERF_ACC(convert, t2);
+    } else {
+      gwenesis_vdp_skip_line(scan_line);
+    }
+
+    if (--hint_counter < 0) {
+      if (REG0_LINE_INTERRUPT != 0) {
+        hint_pending = 1;
+        HINT_DBG(hint_dbg_hint(scan_line, (gwenesis_vdp_status & STATUS_VIRQPENDING) == 0));
+        if ((gwenesis_vdp_status & STATUS_VIRQPENDING) == 0)
+          m68k_update_irq(4);
+      }
+      hint_counter = REG10_LINE_COUNTER;
+    }
+  }
+
+  // Real hardware asserts V-int ~788 master cycles into the first blanking
+  // line, so a line interrupt raised at the end of the last visible line is
+  // taken FIRST. Asserting V-int right away inverts that order: Sonic 2 / 3 put
+  // the water line at line 223 when the water is off screen, and their H-int
+  // (underwater palette upload) then ran after the V-int had restored the
+  // normal palette -> the whole next frame was drawn with the water palette.
+  HINT_DBG(hint_dbg_active_end());
+  m68k_run(system_clock + GENESIS_VINT_DELAY_CYCLES);
+
+  if (REG1_VBLANK_INTERRUPT != 0) {
+    gwenesis_vdp_status |= STATUS_VIRQPENDING;
+    m68k_set_irq(6);
+  }
+
+  if (scan_line < lines_per_frame) {
+    system_clock += vdp_cycles_per_line;
+    uint32_t t0 = PERF_NOW();
+    m68k_run(system_clock);
+    tab5_md_pad_scanline();
+    core0_line.store(scan_line, std::memory_order_release);
+    PERF_ACC(m68k, t0);
+
+    if (--hint_counter < 0) {
+      if (REG0_LINE_INTERRUPT != 0) {
+        hint_pending = 1;
+        if ((gwenesis_vdp_status & STATUS_VIRQPENDING) == 0)
+          m68k_update_irq(4);
+      }
+      // (no hint_counter reset here: it is not read again this frame)
+    }
+
+    ++scan_line;
+  }
+
+  uint32_t t0 = PERF_NOW();
+  for (; scan_line < lines_per_frame; ++scan_line) {
+    system_clock += vdp_cycles_per_line;
+    m68k_run(system_clock);
+    tab5_md_pad_scanline();
+    core0_line.store(scan_line, std::memory_order_release);
+  }
+  PERF_ACC(m68k, t0);
+}
+
+// Core 1: Z80 + SN76489 + YM2612. Uses a private clock that mirrors
+// system_clock's per-line progression (both start at 0 each frame).
+// Run one sound-unit scanline: apply any 68k-issued register writes (in FIFO
+// order) before advancing the chips, then publish the YM2612 status for the
+// 68k to read.
+static inline IRAM_ATTR void sound_unit_scanline(int sclk) {
+  genesis_sound_queue_drain();
+  z80_run(sclk);
+  gwenesis_SN76489_run(sclk);
+  ym2612_run(sclk);
+  genesis_ym2612_status_publish(YM2612Read(0));
+}
+
+// Leash: do not run this scanline's sound until core 0 has finished its 68000
+// step for the same line. Cannot deadlock against a 68k BUSREQ — z80_halted is
+// 1 between scanlines, so the 68k's halt-wait returns while we park here.
+static inline IRAM_ATTR void sound_wait_for_line(int line) {
+  // The sound unit is faster per scanline than the 68k+VDP, so it waits here a
+  // good fraction of each frame. Yield instead of busy-spinning so the video
+  // task (same core, same priority) gets that time — otherwise it is starved
+  // and the display tears. A short spin first avoids a scheduler call when the
+  // wait is only a few microseconds.
+  while (core0_line.load(std::memory_order_acquire) < line) {
+    for (int i = 0; i < 64; ++i) {
+      if (core0_line.load(std::memory_order_acquire) >= line)
+        return;
+    }
+    taskYIELD();
+  }
+}
+
+static IRAM_ATTR void sound_unit_run_frame(int screen_height, int lines_per_frame) {
+  static constexpr int vdp_cycles_per_line = VDP_CYCLES_PER_LINE;
+  int sclk = 0;
+  int line = 0;
+
+  for (; line < screen_height; ++line) {
+    sclk += vdp_cycles_per_line;
+    uint32_t t0 = PERF_NOW();
+    sound_wait_for_line(line);
+    PERF_ACC(snd_leash, t0);
+    sound_unit_scanline(sclk);
+  }
+
+  // Assert the Z80 V-int at the start of vblank and HOLD it until the Z80 takes
+  // it (IAutoReset clears it on take, so it fires exactly once per assert).
+  // A one-scanline pulse is unreliable here: the Z80 frequently has interrupts
+  // disabled during that single line, so V-int-driven sound drivers (e.g.
+  // Sonic 2) miss it and stall. Holding it only through vblank (deasserting at
+  // end of frame) was still not enough: on this dual-core split the 68000 runs
+  // each line BEFORE the Z80 does, so a 68k vblank handler that BUSREQs the Z80
+  // right away (Sonic 3, PAL: the bus stays held ~80 lines for the DMA batch)
+  // keeps the Z80 halted across the whole vblank, and the tick was withdrawn
+  // before the bus came back -- the driver lost about every other tick and the
+  // music slowed and stuttered. On hardware the Z80 wins that race (it samples
+  // /INT within a few of its cycles, before the 68k reaches its BUSREQ). So the
+  // line is simply left asserted: a tick arriving while the previous one is
+  // still pending replaces it (never queues), exactly like a level-triggered
+  // line that was already low.
+  z80_irq_line(1);
+
+  for (; line < lines_per_frame; ++line) {
+    sclk += vdp_cycles_per_line;
+    uint32_t t0 = PERF_NOW();
+    sound_wait_for_line(line);
+    PERF_ACC(snd_leash, t0);
+    sound_unit_scanline(sclk);
+  }
+
+  // Apply any 68k writes that arrived after the last scanline drain, then mark
+  // the Z80 quiescent so a 68k BUSREQ after this point sees it halted.
+  genesis_sound_queue_drain();
+  z80_mark_quiescent();
+}
+
+// --- Core-1 sound task + per-frame barrier ---------------------------------
+// The sound task is pinned to core 1 at a priority above the video task so it
+// runs promptly when a frame is dispatched (and so the BUSREQ handshake is
+// acknowledged quickly), then blocks between frames, leaving core 1 to the
+// video task. Coordination is two binary semaphores: core 0 gives "start",
+// runs the 68k+VDP, then takes "done"; the sound task takes "start", runs the
+// sound frame, then gives "done".
+static TaskHandle_t sound_task_handle = nullptr;
+static SemaphoreHandle_t sound_start_sem = nullptr;
+static SemaphoreHandle_t sound_done_sem = nullptr;
+static volatile int sound_frame_screen_height = 0;
+static volatile int sound_frame_lines = 0;
+static volatile bool sound_task_quit = false;
+
+static void sound_task_fn(void *arg) {
+  (void)arg;
+  for (;;) {
+    xSemaphoreTake(sound_start_sem, portMAX_DELAY);
+    if (sound_task_quit)
+      break;
+    uint32_t t0 = PERF_NOW();
+    sound_unit_run_frame(sound_frame_screen_height, sound_frame_lines);
+    PERF_ACC(snd, t0);
+    xSemaphoreGive(sound_done_sem);
+  }
+  // Unblock any waiter and self-delete.
+  xSemaphoreGive(sound_done_sem);
+  sound_task_handle = nullptr;
+  vTaskDelete(nullptr);
+}
+
+// Core 0: hand the frame to core 1.
+static inline void sound_frame_start(int screen_height, int lines_per_frame) {
+  sound_frame_screen_height = screen_height;
+  sound_frame_lines = lines_per_frame;
+  xSemaphoreGive(sound_start_sem);
+}
+
+// Core 0: barrier — wait for the sound task to finish the frame.
+static inline void sound_frame_wait(void) {
+  xSemaphoreTake(sound_done_sem, portMAX_DELAY);
+}
+
+static bool genesis_sound_task_create(void) {
+  sound_task_quit = false;
+  sound_start_sem = xSemaphoreCreateBinary();
+  sound_done_sem = xSemaphoreCreateBinary();
+  if (!sound_start_sem || !sound_done_sem)
+    return false;
+  // Priority 20 (same as the video task) and pinned to core 1, so that when the
+  // sound unit yields during its leash wait the video task gets core 1 instead
+  // of being starved. (Running it at 18, below the video and I2S audio tasks,
+  // was measured to cost core 0 ~0.4 ms/frame of extra barrier wait with no
+  // audible gain: the stutter at <60 fps is the emulator under-producing
+  // samples, not the audio task being starved.) The BUSREQ handshake stays
+  // correct because z80_halted is already 1 between scanlines (when the sound
+  // task would be preempted).
+  BaseType_t ok = xTaskCreatePinnedToCore(sound_task_fn, "genesis_snd",
+                                          4 * 1024, nullptr, 20,
+                                          &sound_task_handle, 1);
+  return ok == pdPASS;
+}
+
+static void genesis_sound_task_destroy(void) {
+  if (sound_task_handle) {
+    sound_task_quit = true;
+    xSemaphoreGive(sound_start_sem); // wake the task so it observes quit
+    // Wait for it to acknowledge (it gives done before deleting itself).
+    if (sound_done_sem)
+      xSemaphoreTake(sound_done_sem, pdMS_TO_TICKS(100));
+    sound_task_handle = nullptr;
+  }
+  if (sound_start_sem) { vSemaphoreDelete(sound_start_sem); sound_start_sem = nullptr; }
+  if (sound_done_sem) { vSemaphoreDelete(sound_done_sem); sound_done_sem = nullptr; }
+}
+#endif // GENESIS_DUAL_CORE
+
+static void init(uint8_t *romdata, size_t rom_data_size) {
+  genesis_initialized = false;
+
+  // M68K work RAM is the hottest, most random-access structure in the emulator:
+  // it is touched by nearly every 68000 instruction, so PSRAM latency here
+  // dominates the frame time. Allocate it FIRST to win the big internal block.
+  // The YM2612 LFO table is next: like tl_tab/sin_tab (allocated first in
+  // genesis_init_shared_memory()) it is read per sample on core 1, and in PSRAM
+  // its random reads thrash the data cache both cores share. VRAM is allocated
+  // last (genesis_init_shared_vram(), below) and spills to PSRAM when the block
+  // is too small for everything -- moving it internal measured no VDP speed-up.
+  // See genesis_shared_memory.cpp.
+  M68K_RAM = (uint8_t*)allocate_hot_memory(MAX_RAM_SIZE, "M68K_RAM");
+  lfo_pm_table = (int16_t*)allocate_hot_memory(128*8*16 * sizeof(int16_t), "lfo_pm_table");
+
+  genesis_init_shared_memory();
+
+  // local shared memory (used in this file):
+  gwenesis_sn76489_buffer = (int16_t*)allocate_shared_hot_memory(AUDIO_BUFFER_LENGTH * sizeof(int16_t), SHARED_MEM_CACHE_LINE);
+  gwenesis_ym2612_buffer = (int16_t*)allocate_shared_hot_memory(AUDIO_BUFFER_LENGTH * sizeof(int16_t), SHARED_MEM_CACHE_LINE);
+
+  // Approach B index render buffer: gwenesis renders 8-bit palette indices here,
+  // ONE LINE at a time (gwenesis_vdp_gfx.c renders every line to offset 0), and
+  // genesis_convert_line() converts that line to RGB565 into frame_buffer using
+  // the live CRAM565 immediately afterward. Because only one line is ever live it
+  // is a tiny INTERNAL-RAM buffer instead of a ~77KB PSRAM full-frame buffer, so
+  // both the VDP's per-line writes and the converter's reads hit fast internal
+  // RAM. (Same headroom rule as every other internal allocation; falls back to
+  // PSRAM rather than eat into the system's reserve.)
+  genesis_index_buffer = (uint8_t*)allocate_hot_memory(GENESIS_SCREEN_WIDTH, "index_buffer");
+
+#if GENESIS_DUAL_CORE
+  sound_q = (uint32_t*)allocate_hot_memory(SOUND_Q_SIZE * sizeof(uint32_t), "sound_q");
+  genesis_sound_queue_reset();
+  if (!sound_q) {
+    fmt::print("Failed to allocate Genesis sound queue\n");
+    deinit_genesis();
+    return;
+  }
+#endif
+
+  // VRAM last of all: every allocation above is hotter, and with the headroom
+  // rule allocation order is priority -- whatever no longer fits spills to
+  // PSRAM, and 64 kB of VRAM is the buffer measured to lose nothing there.
+  genesis_init_shared_vram();
+
+  if (!gwenesis_sn76489_buffer || !gwenesis_ym2612_buffer || !M68K_RAM || !lfo_pm_table ||
+      !VRAM || !ZRAM || !ym2612 || !OPNREGS || !sin_tab || !render_buffer || !sprite_buffer ||
+      !CRAM || !SAT_CACHE || !gwenesis_vdp_regs || !fifo || !CRAM565 || !VSRAM || !tl_tab ||
+      !genesis_index_buffer) {
+    fmt::print("Failed to allocate Genesis runtime memory\n");
+    deinit_genesis();
+    return;
+  }
+
+#if GENESIS_DUAL_CORE
+  // Spawn the core-1 sound task LAST, only after every allocation above
+  // succeeded. If any alloc had failed, the deinit_genesis() above must not have
+  // a live sound task to tear down -- otherwise genesis_sound_task_destroy()
+  // deletes the sound semaphores out from under the running task and it crashes
+  // on a NULL-semaphore take.
+  if (!genesis_sound_task_create()) {
+    fmt::print("Failed to create Genesis sound task\n");
+    deinit_genesis();
+    return;
+  }
+#endif
+
+  YM2612SetSampleStep(GENESIS_AUDIO_SAMPLE_STEP);
+  load_cartridge(romdata, rom_data_size);
+  power_on();
+  reset_genesis();
+  apply_cpu_percent();
+
+  if (REG1_PAL) {
+    gwenesis_SN76489_Init(3546895,
+      (GWENESIS_AUDIO_BUFFER_LENGTH_PAL / GENESIS_AUDIO_SAMPLE_STEP) * GWENESIS_REFRESH_RATE_PAL,
+      AUDIO_FREQ_DIVISOR * GENESIS_AUDIO_SAMPLE_STEP);
+  } else {
+    gwenesis_SN76489_Init(3579545,
+      (GWENESIS_AUDIO_BUFFER_LENGTH_NTSC / GENESIS_AUDIO_SAMPLE_STEP) * GWENESIS_REFRESH_RATE_NTSC,
+      AUDIO_FREQ_DIVISOR * GENESIS_AUDIO_SAMPLE_STEP);
+  }
+
+  reset_genesis_runtime_state();
+
+  BoxEmu::get().audio_sample_rate(REG1_PAL ? GWENESIS_AUDIO_FREQ_PAL/2 : GWENESIS_AUDIO_FREQ_NTSC/2);
+  // Approach B: frames are already RGB565 (converted per-line on core 0), so the
+  // video task does no palette conversion -- it just blits. Tell it there is no
+  // palette so it uses the straight-copy path.
+  BoxEmu::get().palette(nullptr);
+
+  frame_buffer = frame_buffer_index
+    ? BoxEmu::get().frame_buffer1()
+    : BoxEmu::get().frame_buffer0();
+  // gwenesis always renders indices into the dedicated index buffer; the RGB565
+  // frame_buffer is the conversion target and is double-buffered at submit.
+  gwenesis_vdp_set_buffer(genesis_index_buffer);
+
+  fmt::print("Num bytes allocated: {}\n", shared_num_bytes_allocated());
+
+  reset_frame_time();
+#if GENESIS_PERF
+  perf = GenesisPerf{};
+  perf.dropped_at_start = BoxEmu::get().frames_dropped();
+  perf.blitted_at_start = BoxEmu::get().frames_blitted();
+  perf.blit_cycles_at_start = BoxEmu::get().blit_cycles();
+  perf.z80_irq_at_start = z80_stat_irq_taken;
+  perf.z80_busreq_at_start = z80_stat_busreq;
+  perf.z80_halted_at_start = z80_stat_halted_slices;
+  perf.z80_wto_at_start = z80_stat_wait_timeout;
+  perf.z80_ymw_at_start = z80_stat_ym_writes;
+  perf.vdp_planes_at_start = vdp_stat_planes_cycles;
+  perf.vdp_sprites_at_start = vdp_stat_sprites_cycles;
+  perf.vdp_merge_at_start = vdp_stat_merge_cycles;
+#endif
+  genesis_initialized = true;
+}
+
+bool genesis_is_initialized() {
+  return genesis_initialized;
+}
+
+void init_genesis(uint8_t *romdata, size_t rom_data_size) {
+  BoxEmu::get().native_size(GENESIS_SCREEN_WIDTH, GENESIS_VISIBLE_HEIGHT, GENESIS_SCREEN_WIDTH);
+  init(romdata, rom_data_size);
+}
+
+void IRAM_ATTR run_genesis_rom() {
+  if (!genesis_initialized) {
+    return;
+  }
+  ++emulated_frames;
+  auto start = esp_timer_get_time();
+  // handle input here (see system.h and use input.pad and input.system)
+  auto state = BoxEmu::get().gamepad_state();
+
+  // The Z80 and the sound chips always run: games handshake with their Z80
+  // sound driver (which may pace itself on the YM2612's timers), so stopping
+  // them while muted can leave a game waiting on the driver forever, and a
+  // save made then keeps the frozen driver. Muting only drops the output below.
+  const bool sound_enabled = true;
+  const bool audio_out = !BoxEmu::get().is_muted();
+
+  const bool fast_sound_path =
+#if GWENESIS_AUDIO_ACCURATE == 0
+    sound_enabled;
+#else
+    false;
+#endif
+
+  if (previous_gamepad_state != state) {
+    // button mapping:
+    // up, down, left, right, c, b, a, start
+    // from gwenesis/src/io/gwenesis_io.c
+    const bool keys[] = {
+      (bool)state.up,
+      (bool)state.down,
+      (bool)state.left,
+      (bool)state.right,
+      (bool)state.y, // in genesis, C is the far right, so we'll make it Y
+      (bool)state.a, // in genesis, B is the middle, so we'll make it A
+      (bool)state.b, // in genesis, A is the far left, so we'll make it B
+      (bool)state.start,
+    };
+
+    for (int i=0; i<sizeof(keys); i++) {
+      if (keys[i]) {
+        gwenesis_io_pad_press_button(0, i);
+      } else {
+        gwenesis_io_pad_release_button(0, i);
+      }
+    }
+  }
+
+  tab5_md_pads[0].extra=15 ^ ((state.r?1:0)|(state.l?2:0)|(state.x?4:0)|(state.select?8:0));
+  previous_gamepad_state = state;
+
+  int lines_per_frame = REG1_PAL ? LINES_PER_FRAME_PAL : LINES_PER_FRAME_NTSC;
+  int hint_counter = gwenesis_vdp_regs[10];
+
+  screen_width = REG12_MODE_H40 ? 320 : 256;
+  screen_height = REG1_PAL ? 240 : 224;
+
+  gwenesis_vdp_render_config();
+  HINT_DBG(hint_dbg_frame_start());
+
+#if GENESIS_SKIP_UNDISPLAYABLE_FRAMES
+  // Only we push frames, so if the slot is free now it is still free when this
+  // frame is finished; if it is full, the video task is mid-blit and this frame
+  // would be discarded at push_frame() -- do not draw it. Also skip (bounded)
+  // while running behind real time, see GENESIS_MAX_CONSECUTIVE_SKIPS.
+  render_frame = BoxEmu::get().video_frame_available(frame_buffer) &&
+                 BoxEmu::get().frame_slot_free() &&
+                 !(pacer_behind && consecutive_skips < GENESIS_MAX_CONSECUTIVE_SKIPS);
+  consecutive_skips = render_frame ? 0 : consecutive_skips + 1;
+#else
+  render_frame = BoxEmu::get().video_frame_available(frame_buffer);
+#endif
+
+  /* Reset the difference clocks and audio index */
+  system_clock = 0;
+  zclk = sound_enabled ? 0 : 0x1000000;
+
+  ym2612_clock = sound_enabled ? 0 : 0x1000000;
+  ym2612_index = 0;
+
+  sn76489_clock = sound_enabled ? 0 : 0x1000000;
+  sn76489_index = 0;
+
+  scan_line = 0;
+
+  static constexpr int _vdp_cycles_per_line = VDP_CYCLES_PER_LINE;
+
+  if (fast_sound_path) {
+#if GENESIS_DUAL_CORE
+    // Dual-core: the audio clocks/indices (reset just above) and the write
+    // queue are now consistent and the sound task is idle, so it is safe to
+    // hand the frame to core 1, run the 68k+VDP here on core 0, then barrier.
+    genesis_sound_queue_reset();
+    core0_line.store(-1, std::memory_order_relaxed); // sem give below publishes it
+    sound_frame_start(screen_height, lines_per_frame);
+    cpu_vdp_run_frame(screen_height, lines_per_frame);
+    uint32_t t_barrier = PERF_NOW();
+    sound_frame_wait();
+    PERF_ACC(barrier, t_barrier);
+#elif GWENESIS_AUDIO_ACCURATE == 0
+    run_genesis_frame_sound_on_no_frameskip(screen_height, lines_per_frame);
+#endif
+  } else {
+    while (scan_line < lines_per_frame) {
+      system_clock += _vdp_cycles_per_line;
+
+      uint32_t t0 = PERF_NOW();
+      m68k_run(system_clock);
+      tab5_md_pad_scanline();
+      z80_run(system_clock);
+
+      /* Audio */
+      /*  GWENESIS_AUDIO_ACCURATE:
+       *    =1 : cycle accurate mode. audio is refreshed when CPUs are performing a R/W access
+       *    =0 : line  accurate mode. audio is refreshed every lines.
+       */
+      if (GWENESIS_AUDIO_ACCURATE == 0 && sound_enabled) {
+        gwenesis_SN76489_run(system_clock);
+        ym2612_run(system_clock);
+      }
+      // (single-core path: the Z80/sound share the "m68k" bucket)
+      PERF_ACC(m68k, t0);
+
+      /* Video */
+      if (scan_line < screen_height) {
+        if (render_frame) {
+          uint32_t t1 = PERF_NOW();
+          gwenesis_vdp_render_line(scan_line); /* render scan_line */
+          uint32_t t2 = PERF_NOW();
+          PERF_ACC(vdp, t1);
+          genesis_convert_line(scan_line);
+          PERF_ACC(convert, t2);
+        } else {
+          gwenesis_vdp_skip_line(scan_line);
+        }
+      }
+
+      // On these lines, the line counter interrupt is reloaded
+      if ((scan_line == 0) || (scan_line > screen_height)) {
+        hint_counter = REG10_LINE_COUNTER;
+      }
+
+      // interrupt line counter
+      if (--hint_counter < 0) {
+        if ((REG0_LINE_INTERRUPT != 0) && (scan_line <= screen_height)) {
+          hint_pending = 1;
+          HINT_DBG(hint_dbg_hint(scan_line, (gwenesis_vdp_status & STATUS_VIRQPENDING) == 0));
+          if ((gwenesis_vdp_status & STATUS_VIRQPENDING) == 0)
+            m68k_update_irq(4);
+        }
+        hint_counter = REG10_LINE_COUNTER;
+      }
+
+      scan_line++;
+
+      // vblank begin at the end of last rendered line (after the 68k has had
+      // GENESIS_VINT_DELAY_CYCLES of the first blanking line to take a pending
+      // line interrupt -- see cpu_vdp_run_frame())
+      if (scan_line == screen_height) {
+        HINT_DBG(hint_dbg_active_end());
+        m68k_run(system_clock + GENESIS_VINT_DELAY_CYCLES);
+        if (REG1_VBLANK_INTERRUPT != 0) {
+          gwenesis_vdp_status |= STATUS_VIRQPENDING;
+          m68k_set_irq(6);
+        }
+        z80_irq_line(1); // held until taken -- see sound_unit_run_frame
+      }
+    } // end of scanline loop
+  }
+
+  /* Audio
+   * synchronize YM2612 and SN76489 to system_clock
+   * it completes the missing audio sample for accurate audio mode
+   */
+  if (GWENESIS_AUDIO_ACCURATE == 1 && sound_enabled) {
+    gwenesis_SN76489_run(system_clock);
+    ym2612_run(system_clock);
+  }
+
+  // reset m68k cycles to the begin of next frame cycle
+  m68k->cycles -= system_clock;
+
+  uint32_t t_present = PERF_NOW();
+
+  if (render_frame) {
+    // frame_buffer already holds finished RGB565 (each scanline was converted on
+    // core 0 in genesis_convert_line() right after it was rendered, using the
+    // live CRAM565 -> correct per-line water with no flicker). Hand it straight
+    // to the video task, which just blits it (no core-1 palette conversion).
+    BoxEmu::get().push_frame(frame_buffer);
+    // ping pong the RGB565 output buffer. gwenesis keeps rendering into the
+    // fixed index buffer, so we do NOT re-point the VDP buffer here.
+    frame_buffer_index = !frame_buffer_index;
+    frame_buffer = frame_buffer_index
+      ? BoxEmu::get().frame_buffer1()
+      : BoxEmu::get().frame_buffer0();
+  }
+#if GENESIS_PERF
+  else {
+    perf.skipped++;
+  }
+#endif
+
+  if (audio_out) {
+    const int max_audio_frames = AUDIO_BUFFER_LENGTH / AUDIO_OUTPUT_CHANNELS;
+    int audio_len = std::min(max_audio_frames, std::max(sn76489_index, ym2612_index));
+    const int16_t* sn76489_buffer = gwenesis_sn76489_buffer;
+    int16_t* ym2612_buffer = gwenesis_ym2612_buffer;
+    const int shared_audio_len = std::min(sn76489_index, ym2612_index);
+    int i = audio_len - 1;
+
+    if (ym2612_index > sn76489_index) {
+      for (; i >= shared_audio_len; i--) {
+        const int16_t sample = ym2612_buffer[i];
+        ym2612_buffer[i * AUDIO_OUTPUT_CHANNELS + 0] = sample;
+        ym2612_buffer[i * AUDIO_OUTPUT_CHANNELS + 1] = sample;
+      }
+    } else {
+      for (; i >= shared_audio_len; i--) {
+        const int16_t sample = sn76489_buffer[i];
+        ym2612_buffer[i * AUDIO_OUTPUT_CHANNELS + 0] = sample;
+        ym2612_buffer[i * AUDIO_OUTPUT_CHANNELS + 1] = sample;
+      }
+    }
+
+    for (; i >= 3; i -= 4) {
+      const int16_t sample3 = clamp_audio_sample((int)ym2612_buffer[i - 0] + (int)sn76489_buffer[i - 0]);
+      const int16_t sample2 = clamp_audio_sample((int)ym2612_buffer[i - 1] + (int)sn76489_buffer[i - 1]);
+      const int16_t sample1 = clamp_audio_sample((int)ym2612_buffer[i - 2] + (int)sn76489_buffer[i - 2]);
+      const int16_t sample0 = clamp_audio_sample((int)ym2612_buffer[i - 3] + (int)sn76489_buffer[i - 3]);
+
+      ym2612_buffer[(i - 0) * AUDIO_OUTPUT_CHANNELS + 0] = sample3;
+      ym2612_buffer[(i - 0) * AUDIO_OUTPUT_CHANNELS + 1] = sample3;
+      ym2612_buffer[(i - 1) * AUDIO_OUTPUT_CHANNELS + 0] = sample2;
+      ym2612_buffer[(i - 1) * AUDIO_OUTPUT_CHANNELS + 1] = sample2;
+      ym2612_buffer[(i - 2) * AUDIO_OUTPUT_CHANNELS + 0] = sample1;
+      ym2612_buffer[(i - 2) * AUDIO_OUTPUT_CHANNELS + 1] = sample1;
+      ym2612_buffer[(i - 3) * AUDIO_OUTPUT_CHANNELS + 0] = sample0;
+      ym2612_buffer[(i - 3) * AUDIO_OUTPUT_CHANNELS + 1] = sample0;
+    }
+
+    for (; i >= 0; i--) {
+      const int16_t sample = clamp_audio_sample((int)ym2612_buffer[i] + (int)sn76489_buffer[i]);
+      ym2612_buffer[i * AUDIO_OUTPUT_CHANNELS + 0] = sample;
+      ym2612_buffer[i * AUDIO_OUTPUT_CHANNELS + 1] = sample;
+    }
+    BoxEmu::get().play_audio(reinterpret_cast<uint8_t*>(ym2612_buffer), audio_len * AUDIO_OUTPUT_CHANNELS * sizeof(int16_t));
+  }
+  PERF_ACC(present, t_present);
+
+  // manage statistics
+  auto end = esp_timer_get_time();
+  uint64_t elapsed = end - start;
+  update_frame_time(elapsed);
+
+  // Throttle to the game's native refresh rate. Using the NTSC 60 Hz cap for a
+  // PAL (50 Hz) game runs it ~20% too fast AND overproduces audio -- the YM2612
+  // sample step / per-frame sample counts are sized for the native rate, so at
+  // 60 Hz a 50 Hz game generates ~1.2x the samples the I2S can drain, which
+  // overruns the audio buffer and stutters. Pace each region at its own rate.
+  const uint64_t max_frame_time =
+    1000000 / (REG1_PAL ? GWENESIS_REFRESH_RATE_PAL : GWENESIS_REFRESH_RATE_NTSC);
+  //
+  // Pace against a running deadline rather than per frame. Since the display-
+  // aware frame skip, frames alternate between rendered (~19 ms, overrunning)
+  // and skipped (~10 ms, finishing early); paced individually the early frames
+  // slept their slack away and the average stayed at ~54 fps even though the
+  // mean frame time fits in 16.7 ms. With a running deadline the early frames
+  // repay the overrun, so the AVERAGE rate -- which is what keeps the YM2612
+  // sample production matched to the I2S clock -- holds at the native rate
+  // whenever the mean fits. If we fall more than a frame behind (a genuinely
+  // slow stretch, or resuming from the menu) the deadline resyncs to now, so
+  // a slow stretch is never followed by a burst of unthrottled frames.
+  // next_deadline is when THIS frame should end; it advances by one period per
+  // frame below, after the sleep decision.
+  static int64_t next_deadline = 0;
+  if (next_deadline == 0 || end - next_deadline > (int64_t)max_frame_time) {
+    // Genuinely behind (or first frame / resumed): this frame ends now, nothing
+    // to wait for, but give the rest of core 0 a tick (the old per-frame pacer
+    // did the same when late).
+    pacer_behind = next_deadline != 0;
+    next_deadline = end;
+    vTaskDelay(1);
+  } else if (end < next_deadline) {
+    pacer_behind = false;
+    std::this_thread::sleep_for(std::chrono::microseconds(next_deadline - end));
+  } else {
+    // past the deadline but within a period: the running deadline will absorb
+    // it if the next frames finish early; tell the skip rule we are behind.
+    pacer_behind = true;
+  }
+  next_deadline += max_frame_time;
+
+#if GENESIS_PERF
+  perf.frame_us += elapsed;
+  perf.sleep_us += esp_timer_get_time() - end;
+  perf.late += (elapsed >= max_frame_time); // this frame overran its period
+  if (++perf.frames == GENESIS_PERF_REPORT_FRAMES) {
+    genesis_perf_report();
+  }
+#endif
+}
+
+// State operations run between frames, after the sound worker's barrier.
+static std::vector<uint8_t> capture_core_state() {
+  char *memory=nullptr;size_t size=0;
+  savestate_fp=open_memstream(&memory,&size);
+  if(!savestate_fp)return {};
+  savestate_errors=0;gwenesis_save_state();
+  bool ok=!ferror(savestate_fp) && !savestate_errors;
+  if(fclose(savestate_fp))ok=false;savestate_fp=nullptr;
+  std::vector<uint8_t> bytes;
+  if(ok && size && size<=2*1024*1024)bytes.assign(memory,memory+size);
+  free(memory);return bytes;
+}
+static bool apply_core_state(std::vector<uint8_t> &bytes) {
+  savestate_fp=fmemopen(bytes.data(),bytes.size(),"rb");
+  if(!savestate_fp)return false;
+  savestate_errors=0;gwenesis_load_state();
+  const bool ok=!ferror(savestate_fp) && !savestate_errors;
+  fclose(savestate_fp);savestate_fp=nullptr;
+#if GENESIS_DUAL_CORE
+  genesis_sound_queue_reset();
+#endif
+  return ok;
+}
+static size_t genesis_state_header(){return cartridge_eeprom.size()?144:112;}
+bool save_genesis(std::string_view path) {
+  if(!genesis_initialized || !storage_ready || path.empty())return false;
+  auto core=capture_core_state();if(core.empty())return false;
+  const size_t state_header=genesis_state_header();
+  std::vector<uint8_t> bytes(state_header+core.size()+cartridge_sram.size,0);
+  memcpy(bytes.data(),"T5MDST01",8);
+  tab5::md::put32(bytes.data()+8,cartridge_eeprom.size()?4:cartridge_protection.enabled?3:2);tab5::md::put32(bytes.data()+12,state_header);
+  memcpy(bytes.data()+16,cartridge_hash.data(),32);
+  tab5::md::put32(bytes.data()+48,cartridge_sram.size);
+  tab5::md::put32(bytes.data()+52,cartridge_sram.control);
+  tab5::md::put32(bytes.data()+56,core.size());
+  memcpy(bytes.data()+92,"PAD6",4);
+  memcpy(bytes.data()+96,tab5_md_pads,sizeof(tab5_md_pads));
+  if(cartridge_protection.enabled){bytes[108]='T';bytes[109]='K';bytes[110]=1;bytes[111]=cartridge_protection.bits;}
+  if(cartridge_eeprom.size()){const auto snapshot=cartridge_eeprom.snapshot();memcpy(bytes.data()+112,snapshot.data(),snapshot.size());}
+  memcpy(bytes.data()+state_header,core.data(),core.size());
+  memcpy(bytes.data()+state_header+core.size(),cartridge_sram.bytes.data(),cartridge_sram.size);
+  std::array<uint8_t,32> digest{};
+  if(!tab5::content::digest_bytes(bytes.data(),bytes.size(),digest))return false;
+  memcpy(bytes.data()+60,digest.data(),32);
+  return tab5::content::atomic_write(std::string(path),bytes.data(),bytes.size());
+}
+bool load_genesis(std::string_view path) {
+  if(!genesis_initialized || !storage_ready || path.empty())return false;
+  auto current=capture_core_state();if(current.empty())return false;
+  const size_t state_header=genesis_state_header();
+  const size_t expected=state_header+current.size()+cartridge_sram.size;
+  tab5::content::FileBytes bytes;
+  if(!tab5::content::read_exact_file(std::string(path),expected,bytes))return false;
+  if(memcmp(bytes.data(),"T5MDST01",8) || (cartridge_eeprom.size()?tab5::md::get32(bytes.data()+8)!=4:(tab5::md::get32(bytes.data()+8)<1 || tab5::md::get32(bytes.data()+8)>3)) || tab5::md::get32(bytes.data()+12)!=state_header ||
+     memcmp(bytes.data()+16,cartridge_hash.data(),32) || tab5::md::get32(bytes.data()+48)!=cartridge_sram.size ||
+     tab5::md::get32(bytes.data()+52)>3 || tab5::md::get32(bytes.data()+56)!=current.size())return false;
+  const unsigned version=tab5::md::get32(bytes.data()+8);
+  const bool pad_state=version>=2;
+  if(pad_state){
+    if(memcmp(bytes.data()+92,"PAD6",4))return false;
+    for(unsigned i=0;i<3;++i){const auto *p=bytes.data()+96+4*i;if(p[0]>8||(p[0]&1)||p[1]>26||p[2]>15||p[3]>1)return false;}
+    if(version==3){if(!cartridge_protection.enabled || bytes[108]!='T' || bytes[109]!='K' || bytes[110]!=1 || bytes[111]>15)return false;}
+    else for(size_t i=108;i<112;++i)if(bytes[i])return false;
+  }else for(size_t i=92;i<112;++i)if(bytes[i])return false;
+  auto restored_eeprom=cartridge_eeprom;
+  if(version==4 && !restored_eeprom.restore(bytes.data()+112))return false;
+  std::array<uint8_t,32> stored{},digest{};memcpy(stored.data(),bytes.data()+60,32);memset(bytes.data()+60,0,32);
+  if(!tab5::content::digest_bytes(bytes.data(),bytes.size(),digest) || stored!=digest)return false;
+  std::vector<uint8_t> incoming(bytes.data()+state_header,bytes.data()+state_header+current.size());
+  if(!tab5::md::same_records(current,incoming))return false;
+  if(!apply_core_state(incoming)){apply_core_state(current);return false;}
+  cartridge_eeprom=restored_eeprom;
+  memcpy(cartridge_sram.bytes.data(),bytes.data()+state_header+current.size(),cartridge_sram.size);
+  cartridge_sram.control=tab5::md::get32(bytes.data()+52);
+  cartridge_protection.bits=version==3?bytes[111]:0;
+  if(pad_state){
+    Tab5MdPad saved[3];memcpy(saved,bytes.data()+96,sizeof(saved));
+    for(unsigned i=0;i<3;++i)tab5_md_pad_restore(&tab5_md_pads[i],&saved[i]);
+  }
+  else for(auto &p:tab5_md_pads){p.phase=p.age=0;p.extra=15;}
+  BoxEmu::get().clear_audio();return true;
+}
+
+bool prepare_genesis_storage(std::string_view hash,const uint8_t *rom,size_t size) {
+  storage_ready=false;cartridge_rom_bytes=0;tab5_md_fast_rom_end=0;emulated_frames=0;
+  cartridge_eeprom.configure(tab5::md::SerialEeprom::Board::None,nullptr);
+  auto &store=tab5::content::primary_battery_store();store.reset();
+  // The upstream SMD decoder is not safe for arbitrary block lengths. This
+  // The cart safely decodes SMD before this function sees the ROM bytes.
+  if(!rom || size<0x200 || size>0x800000 || size%2 || hash.size()!=64 ||
+     (rom[1]==3 && rom[8]==0xaa && rom[9]==0xbb))return false;
+  const auto pc=tab5::md::LinearSram::be32(rom+4);
+  if(pc<0x200 || pc>=size || pc%2)return false;
+  for(size_t i=0;i<32;++i){
+    auto digit=[](char c)->int{if(c>='0'&&c<='9')return c-'0';if(c>='a'&&c<='f')return c-'a'+10;return -1;};
+    const int a=digit(hash[2*i]),b=digit(hash[2*i+1]);if(a<0||b<0)return false;cartridge_hash[i]=(a<<4)|b;
+  }
+  const auto serial=tab5::md::SerialEeprom::identify(rom,size);
+  const auto kind=cartridge_sram.configure(rom,size);
+  cartridge_protection.configure(rom,size);
+  if(serial!=tab5::md::SerialEeprom::Board::None){
+    cartridge_eeprom.configure(serial,cartridge_sram.bytes.data());
+    cartridge_sram.size=cartridge_eeprom.size();cartridge_sram.first=0x200000;
+    cartridge_sram.last=0;cartridge_sram.control=0;
+    std::fill_n(cartridge_sram.bytes.data(),cartridge_sram.size,0xff);
+  }else if(kind==tab5::md::LinearSram::Kind::Unsupported)return false;
+  cartridge_rom_bytes=size;tab5_md_fast_rom_end=cartridge_sram.size?std::min<uint32_t>(size,cartridge_sram.first&~1u):size;
+  storage_ready=!cartridge_sram.size || (store.configure("genesis",hash,cartridge_sram.size) && store.load(cartridge_sram.bytes.data()));
+  return storage_ready;
+}
+bool genesis_storage_ready(){return storage_ready;}
+bool flush_genesis_battery(){return storage_ready && (!cartridge_sram.size || tab5::content::primary_battery_store().flush(cartridge_sram.bytes.data()));}
+uint32_t genesis_frames(){return emulated_frames.load();}
+
+std::span<uint8_t> get_genesis_video_buffer() {
+  if (!genesis_initialized || !frame_buffer) {
+    return {};
+  }
+  static constexpr int height = GENESIS_VISIBLE_HEIGHT;
+  static constexpr int width = GENESIS_SCREEN_WIDTH;
+
+  // Approach B: the buffers already hold finished RGB565. The last frame handed
+  // to the video task is the one NOT currently being rendered into (frame_buffer
+  // points at the next render target after the submit toggle), so return that
+  // buffer directly -- no palette conversion needed.
+  auto *last_pushed = !frame_buffer_index
+    ? BoxEmu::get().frame_buffer1()
+    : BoxEmu::get().frame_buffer0();
+  return std::span<uint8_t>(last_pushed, width * height * 2);
+}
+
+void deinit_genesis() {
+  if(genesis_initialized && storage_ready && !flush_genesis_battery())fmt::print("genesis: battery flush failed; previous save retained\n");
+  storage_ready=false;tab5::content::primary_battery_store().reset();
+  cartridge_eeprom.configure(tab5::md::SerialEeprom::Board::None,nullptr);
+  genesis_initialized = false;
+#if GENESIS_DUAL_CORE
+  // Stop the core-1 sound task before tearing down the state it uses.
+  genesis_sound_task_destroy();
+#endif
+  reset_genesis_runtime_state();
+  BoxEmu::get().audio_sample_rate(48000);
+  shared_mem_clear();
+  free(M68K_RAM);
+  free(lfo_pm_table);
+#if GENESIS_DUAL_CORE
+  free(sound_q);
+  sound_q = nullptr;
+  genesis_sound_queue_reset();
+#endif
+  free(genesis_index_buffer);
+  genesis_index_buffer = nullptr;
+  M68K_RAM = nullptr;
+  lfo_pm_table = nullptr;
+  gwenesis_sn76489_buffer = nullptr;
+  gwenesis_ym2612_buffer = nullptr;
+  frame_buffer = nullptr;
+}

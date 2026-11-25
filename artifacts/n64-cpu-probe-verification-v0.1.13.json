@@ -1,0 +1,38 @@
+{
+  "sha256": "0ee6805737770582cbc47737d7c1b7ab60b70760128060f0e56a17dedd3e61db",
+  "uploaded": true,
+  "received_hash_verified": true,
+  "installed": true,
+  "booted": true,
+  "return_confirmed": true,
+  "physical_tests": true,
+  "tests": {
+    "profile": "n64-cpu-probe",
+    "bytes": 4013792,
+    "slot_margin": 49440,
+    "cpu_probe": {
+      "firmware": "0.1.13",
+      "elf_sha256": "56ffa7176fa0208121e01123ae688634fbb897ba654fccebc5f6d7bdf4c6df45",
+      "fixture_sha256": "9c8d794f22356d396b5f7780a2538356f474503f1d250456e1da33bde4c36c47",
+      "passed": true,
+      "instructions": 22,
+      "core_bytes": 13635168,
+      "cause": 36,
+      "epc": 2147483736,
+      "elapsed_us": 106643,
+      "unsupported": "",
+      "unavailable_gb_gbc_hidden": true,
+      "menu_rom_count": 4
+    },
+    "host_positive_instructions": 22,
+    "host_negative_checks": 5,
+    "host_asan_ubsan": true,
+    "restored_stable_sha256": "ae73c4d6b72e4ac6d7a240456ec356e5144077d7c22098c046a5a7b36a9b00eb",
+    "shared_data_preserved": true
+  },
+  "limitations": [
+    "Bounded CPU harness, not an N64 console emulator or game compatibility claim.",
+    "GB/GBC are omitted only in this diagnostic profile; stable restores them.",
+    "No TLB/interrupt scheduler, cartridge boot, VI, RSP/RDP, PIF/controller, audio or N64 saves."
+  ]
+}

@@ -1,0 +1,89 @@
+test_empty_tail_is_terminal (test_catalog_usb.CatalogUsbTest.test_empty_tail_is_terminal) ... ok
+test_full_catalog_request_and_timeout (test_catalog_usb.CatalogUsbTest.test_full_catalog_request_and_timeout) ... ok
+test_rejects_a_stalled_response (test_catalog_usb.CatalogUsbTest.test_rejects_a_stalled_response) ... ok
+test_rejects_invalid_requests_before_io (test_catalog_usb.CatalogUsbTest.test_rejects_invalid_requests_before_io) ... ok
+test_latch_can_precede_next_second_at_day_wrap (test_compatibility_tool.RtcProbeTest.test_latch_can_precede_next_second_at_day_wrap) ... ok
+test_preserved_day_is_valid (test_compatibility_tool.RtcProbeTest.test_preserved_day_is_valid) ... ok
+test_wrong_day_or_missing_carry_is_refused (test_compatibility_tool.RtcProbeTest.test_wrong_day_or_missing_carry_is_refused) ... ok
+test_cleanup_error_keeps_primary_exception (test_gb_rom_validation_tool.ProbeTest.test_cleanup_error_keeps_primary_exception) ... ok
+test_exception_restores_exact_rom_and_resume_preference (test_gb_rom_validation_tool.ProbeTest.test_exception_restores_exact_rom_and_resume_preference) ... ok
+test_unexpected_firmware_prevents_writes (test_gb_rom_validation_tool.ProbeTest.test_unexpected_firmware_prevents_writes) ... ok
+test_disconnect_during_quit_preserves_primary_error_and_partial_results (test_gba_lifecycle.LifecycleTest.test_disconnect_during_quit_preserves_primary_error_and_partial_results) ... ok
+test_report_cannot_replace_previous_evidence (test_gba_lifecycle.LifecycleTest.test_report_cannot_replace_previous_evidence) ... ok
+test_success_restores_original_preferences (test_gba_lifecycle.LifecycleTest.test_success_restores_original_preferences) ... Cycle 0 ALU/SMC and return passed
+ok
+test_unexpected_firmware_does_not_change_preferences (test_gba_lifecycle.LifecycleTest.test_unexpected_firmware_does_not_change_preferences) ... ok
+test_bounded_parser_and_utf8 (test_library.LibraryTest.test_bounded_parser_and_utf8) ... ok
+test_hash_missing_file_duplicate_and_bad_entry_are_isolated (test_library.LibraryTest.test_hash_missing_file_duplicate_and_bad_entry_are_isolated) ... ok
+test_init_and_scan_preserve_user_data (test_library.LibraryTest.test_init_and_scan_preserve_user_data) ... ok
+test_paths_and_symlink_escape (test_library.LibraryTest.test_paths_and_symlink_escape) ... ok
+test_real_upstream_csv_title_with_comma_and_report (test_library.LibraryTest.test_real_upstream_csv_title_with_comma_and_report) ... ok
+test_thumbnail_aspect_and_progressive_rejection (test_library.LibraryTest.test_thumbnail_aspect_and_progressive_rejection) ... ok
+test_appledouble_and_hidden_folders_are_not_games (test_library_index.IndexTests.test_appledouble_and_hidden_folders_are_not_games) ... ok
+test_bad_source_never_replaces_prior_index (test_library_index.IndexTests.test_bad_source_never_replaces_prior_index) ... ok
+test_discovery_output_limit_preserves_prior_index (test_library_index.IndexTests.test_discovery_output_limit_preserves_prior_index) ... ok
+test_large_unicode_catalog_and_source_binding (test_library_index.IndexTests.test_large_unicode_catalog_and_source_binding) ... ok
+test_changed_source_rolls_back_only_new_copy (test_n64_transfer.N64TransferTests.test_changed_source_rolls_back_only_new_copy) ... ok
+test_conflicting_existing_rom_is_preserved (test_n64_transfer.N64TransferTests.test_conflicting_existing_rom_is_preserved) ... ok
+test_dedup_copy_readback_originals_and_catalog (test_n64_transfer.N64TransferTests.test_dedup_copy_readback_originals_and_catalog) ... ok
+test_index_failure_restores_exact_catalog_and_index (test_n64_transfer.N64TransferTests.test_index_failure_restores_exact_catalog_and_index) ... ok
+test_invalid_rom_and_symlink_target_refused (test_n64_transfer.N64TransferTests.test_invalid_rom_and_symlink_target_refused) ... ok
+test_instruction_bytes_are_not_a_pointer_but_data_is (test_overlay.OverlayRegression.test_instruction_bytes_are_not_a_pointer_but_data_is) ... ok
+test_link_provenance_preserves_calls_without_ascii_false_positives (test_overlay.OverlayRegression.test_link_provenance_preserves_calls_without_ascii_false_positives) ... ok
+test_console_ignores_late_status_before_pairing_reply (test_paludo.ContractTest.test_console_ignores_late_status_before_pairing_reply) ... ok
+test_console_retries_only_status_during_startup (test_paludo.ContractTest.test_console_retries_only_status_during_startup) ... ok
+test_console_waits_for_usb_node_before_sending_any_command (test_paludo.ContractTest.test_console_waits_for_usb_node_before_sending_any_command) ... ok
+test_digest_and_project_rejection (test_paludo.ContractTest.test_digest_and_project_rejection) ... ok
+test_empty_slot_install_changes_usage_without_changing_layout (test_paludo.ContractTest.test_empty_slot_install_changes_usage_without_changing_layout) ... Destino: Instalar tab5-emu no slot 1 (app1). Espaco disponivel; apps existentes preservados.
+ok
+test_execute_disconnect_is_ambiguous_and_not_replayed (test_paludo.ContractTest.test_execute_disconnect_is_ambiguous_and_not_replayed) ... ok
+test_expired_pairing_renews_web_before_upload (test_paludo.ContractTest.test_expired_pairing_renews_web_before_upload) ... ok
+test_large_upload_streams_fixed_length_without_chunked_encoding (test_paludo.ContractTest.test_large_upload_streams_fixed_length_without_chunked_encoding) ... ok
+test_other_application_is_preserved (test_paludo.ContractTest.test_other_application_is_preserved) ... ok
+test_owned_update_and_backup_failure (test_paludo.ContractTest.test_owned_update_and_backup_failure) ... Atualizar somente tab5-emu: Remover app 1 com backup do binario. Dados externos preservados.
+Launcher: 100%
+Launcher: 100%
+Atualizar somente tab5-emu: Remover app 1 com backup do binario. Dados externos preservados.
+Launcher: 0%
+ok
+test_pairing_waits_for_wifi_startup_without_retrying_flash (test_paludo.ContractTest.test_pairing_waits_for_wifi_startup_without_retrying_flash) ... ok
+test_progress_disconnect_does_not_repeat_execute (test_paludo.ContractTest.test_progress_disconnect_does_not_repeat_execute) ... Launcher: conexão de progresso interrompida; consultando a mesma operação.
+Launcher: 100%
+ok
+test_reorganization_is_not_implicit (test_paludo.ContractTest.test_reorganization_is_not_implicit) ... ok
+test_stage_does_not_execute_flash (test_paludo.ContractTest.test_stage_does_not_execute_flash) ... ok
+test_upload_timeout_closes_stream_without_replaying_request (test_paludo.ContractTest.test_upload_timeout_closes_stream_without_replaying_request) ... ok
+test_wifi_reconnect_is_bounded_and_precedes_upload (test_paludo.ContractTest.test_wifi_reconnect_is_bounded_and_precedes_upload) ... /opt/homebrew/Cellar/python@3.14/3.14.8/Frameworks/Python.framework/Versions/3.14/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 401: 'expired'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+ok
+test_failed_write_rolls_back_only_own_files (test_save_migration.MigrationTests.test_failed_write_rolls_back_only_own_files) ... ok
+test_fixture_catalog_rolls_back_after_test_failure (test_save_migration.MigrationTests.test_fixture_catalog_rolls_back_after_test_failure) ... ok
+test_gb_state_geometry_and_corrupt_offsets (test_save_migration.MigrationTests.test_gb_state_geometry_and_corrupt_offsets) ... ok
+test_gba_backup_requires_explicit_matching_type (test_save_migration.MigrationTests.test_gba_backup_requires_explicit_matching_type) ... ok
+test_gba_bson_same_schema_and_malformed_lengths (test_save_migration.MigrationTests.test_gba_bson_same_schema_and_malformed_lengths) ... ok
+test_legacy_source_invalid_journal_is_not_ignored (test_save_migration.MigrationTests.test_legacy_source_invalid_journal_is_not_ignored) ... ok
+test_mbc2_plan_apply_no_clobber_and_journal (test_save_migration.MigrationTests.test_mbc2_plan_apply_no_clobber_and_journal) ... ok
+test_md_eeprom_state_import_rejects_other_board_and_invalid_wire_phase (test_save_migration.MigrationTests.test_md_eeprom_state_import_rejects_other_board_and_invalid_wire_phase) ... ok
+test_md_raw_conversion_uses_legacy_battery_not_template (test_save_migration.MigrationTests.test_md_raw_conversion_uses_legacy_battery_not_template) ... ok
+test_md_serial_identity_matches_runtime_and_sram_patches (test_save_migration.MigrationTests.test_md_serial_identity_matches_runtime_and_sram_patches) ... ok
+test_native_rtc_formats_and_invalid_day (test_save_migration.MigrationTests.test_native_rtc_formats_and_invalid_day) ... ok
+test_physical_fixtures_have_valid_geometry (test_save_migration.MigrationTests.test_physical_fixtures_have_valid_geometry) ... ok
+test_reserved_backup_and_symlink_refused (test_save_migration.MigrationTests.test_reserved_backup_and_symlink_refused) ... ok
+test_rtc_import_refuses_a_different_existing_clock_version (test_save_migration.MigrationTests.test_rtc_import_refuses_a_different_existing_clock_version) ... ok
+test_snes_sram_layout_explicit_and_raw_state_refused (test_save_migration.MigrationTests.test_snes_sram_layout_explicit_and_raw_state_refused) ... ok
+test_bounds (test_sd_core_format.CoreFormatTests.test_bounds) ... ok
+test_fixed_image_and_address_binding (test_sd_core_format.CoreFormatTests.test_fixed_image_and_address_binding) ... ok
+test_native_assets_opt_into_larger_bounded_payload (test_sd_core_format.CoreFormatTests.test_native_assets_opt_into_larger_bounded_payload) ... ok
+test_drift_cannot_replace_the_previous_generated_header (test_stable_artifact.AudioStageTest.test_drift_cannot_replace_the_previous_generated_header) ... ok
+test_real_pinned_feeder_keeps_ring_and_uses_one_frame_wait (test_stable_artifact.AudioStageTest.test_real_pinned_feeder_keeps_ring_and_uses_one_frame_wait) ... ok
+test_pinned_loader_gets_sram_failure_guard (test_stable_artifact.GbLoaderStageTest.test_pinned_loader_gets_sram_failure_guard) ... ok
+test_unreviewed_source_cannot_replace_adapter (test_stable_artifact.GbLoaderStageTest.test_unreviewed_source_cannot_replace_adapter) ... ok
+test_accepts_only_build_evidence_without_claiming_hardware_test (test_stable_artifact.StableGateTest.test_accepts_only_build_evidence_without_claiming_hardware_test) ... ok
+test_rejects_experimental_code_and_flags (test_stable_artifact.StableGateTest.test_rejects_experimental_code_and_flags) ... ok
+test_rejects_growth_and_shrink_of_reservation (test_stable_artifact.StableGateTest.test_rejects_growth_and_shrink_of_reservation) ... ok
+test_rejects_other_profile (test_stable_artifact.StableGateTest.test_rejects_other_profile) ... ok
+
+----------------------------------------------------------------------
+Ran 73 tests in 0.354s
+
+OK

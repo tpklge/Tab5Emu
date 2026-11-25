@@ -1,0 +1,74 @@
+{
+  "complete": true,
+  "elf_sha256": "884954de93057637d15b8101bf3680870ede738b12711e3f11dbe6b8d6833ade",
+  "boards": {
+    "sega": {
+      "rom_sha256": "325aa020d79f337a828c1d412e4467f1dc15b4acc235f3ca03f8d49c30bbd0c2",
+      "complete": true,
+      "counter_before": 8,
+      "first_counter": 9,
+      "second_counter": 10,
+      "bytes": 128,
+      "state_version": 4,
+      "state_bytes": 147238,
+      "state_restores_eeprom": true,
+      "cold_boot_reads_eeprom": true,
+      "start_guest_write": true,
+      "previous_battery_retained": true,
+      "invalid_states_rejected": [
+        "digest",
+        "board",
+        "protocol_counter"
+      ]
+    },
+    "ea": {
+      "rom_sha256": "ae7f323d90af775314d9afa659eb6020a602bc035fcd15031abad8b38e412802",
+      "complete": true,
+      "legacy_import": {
+        "source_sha256": "8ad2461ce42617922d03dbe509dd55b25ef68df170d93d555caec4350d0a6f60",
+        "original_preserved": true,
+        "journal_sha256": "faf020ad6e71ccfd12b0250d50027ceaf381655fce9c1e3083dea1791e334dfc"
+      },
+      "counter_before": 7,
+      "first_counter": 8,
+      "second_counter": 9,
+      "bytes": 128,
+      "state_version": 4,
+      "state_bytes": 147238,
+      "state_restores_eeprom": true,
+      "cold_boot_reads_eeprom": true,
+      "start_guest_write": true,
+      "previous_battery_retained": true,
+      "invalid_states_rejected": [
+        "digest",
+        "board",
+        "protocol_counter"
+      ]
+    },
+    "acclaim16": {
+      "rom_sha256": "f80eefbbce3eeef8e01ab864ac3addcfa00ee3b8d1ab579b960f7ce540d68f0e",
+      "complete": true,
+      "legacy_import": {
+        "source_sha256": "0d738157bfa6132f889aede090c4697636319143f33328318a888f934a1f9381",
+        "original_preserved": true,
+        "journal_sha256": "2f7fca83802f3169e133ed0641aaf4dbfdd2fd02b16bba0187ea55c0f648e449"
+      },
+      "counter_before": 7,
+      "first_counter": 8,
+      "second_counter": 9,
+      "bytes": 256,
+      "state_version": 4,
+      "state_bytes": 147366,
+      "state_restores_eeprom": true,
+      "cold_boot_reads_eeprom": true,
+      "start_guest_write": true,
+      "previous_battery_retained": true,
+      "invalid_states_rejected": [
+        "digest",
+        "board",
+        "protocol_counter"
+      ]
+    }
+  },
+  "catalog_restored": true
+}

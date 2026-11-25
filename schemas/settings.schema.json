@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tab5-emu:settings:1",
+  "title": "Tab5-Emu preferences v1",
+  "description": "Optional fields override the legacy binary preferences. Runtime additionally limits UTF-8 byte lengths, nesting and total file size (64 KiB). Unknown fields survive saves.",
+  "type": "object",
+  "required": ["schema_version"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "volume": {"type": "integer", "minimum": 0, "maximum": 100},
+    "brightness": {"type": "integer", "minimum": 5, "maximum": 100},
+    "video": {"type": "integer", "minimum": 0, "maximum": 2},
+    "muted": {"type": "boolean"},
+    "resume_last_save": {"type": "boolean"},
+    "ui": {
+      "type": "object",
+      "properties": {
+        "gba_cpu": {"type": "integer", "minimum": 0, "maximum": 1},
+        "md_six_buttons": {"type": "boolean"},
+        "theme": {"enum": ["system", "dark", "light"]},
+        "search": {"type": "string", "maxLength": 128},
+        "library_view": {"type": "integer", "minimum": 0, "maximum": 2},
+        "idle_seconds": {"anyOf": [{"const": 0}, {"type": "integer", "minimum": 15, "maximum": 3600}]},
+        "idle_in_game": {"type": "boolean"},
+        "favorites": {"type": "array", "maxItems": 128, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 320}},
+        "recent": {"type": "array", "maxItems": 20, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 320}}
+      }
+    }
+  }
+}

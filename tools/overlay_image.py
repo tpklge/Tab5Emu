@@ -1,0 +1,391 @@
+#!/usr/bin/env python3
+"""Store the game cores' code overlay in flash and check that nothing else
+uses it (builds that execute from flash; see components/tab5-emu/overlay.ld).
+
+usage: overlay_image.py <app.elf> <app.map> [--report]
+
+1. Each overlay member .tab5_ovl.<core> (linked at the shared PSRAM address)
+   is copied into its slot in .flash.tab5_ovl_store (symbol
+   _tab5_ovl_<core>_lma) and changed to NOBITS, so elf2image leaves the PSRAM
+   sections out of the image; likewise .tab5_res (resident PSRAM code,
+   _tab5_res_lma). Running it again is harmless.
+2. Checks, which fail the build: code that is not in the overlay must not
+   reach into it, because only one core's code is there at a time (or none):
+   - no boot-time constructor (.flash.init_array) points into the overlay;
+   - resident code: every call / jump / address taken / load / store into the
+     overlay range (auipc or lui followed by jalr / addi / a load or store
+     on the same register) must be in
+     the carts (main.cpp, which load their core before using it), the loader
+     (overlay.c), or a core's own resident code that only that core uses: its
+     internal-RAM code (IRAM_ATTR and the like), or code it keeps in flash
+     that is local or, per the linker's cross-reference table, referenced
+     only from its own archive;
+   - resident data: every word that is the address of an overlay function
+     (or table) must belong to a core archive (its own jump tables, vtables, callbacks).
+   A finding names the resident function and the overlay code it reaches;
+   the usual fix is to keep that code in flash (bss_to_psram.py
+   --overlay-keep in the core's CMakeLists.txt).
+   --report prints the allowed references too.
+"""
+import hashlib
+import json
+from pathlib import Path
+from sd_core_format import descriptor,verify
+import bisect
+import re
+import shutil
+import struct
+import subprocess
+import sys
+from array import array
+from overlay_checks import resident_data_references, relocated_code_references
+
+SHT_PROGBITS, SHT_NOBITS = 1, 8
+SHF_WRITE, SHF_ALLOC, SHF_EXECINSTR = 0x1, 0x2, 0x4
+CORES = ("gba", "snes", "genesis", "doom", "nes", "gbc", "sms", "msx", "pico8", "jk", "darkforces", "mgs", "scummvm", "n64", "sm64")
+CART_FILES = ("libmain.a(main.cpp.obj)",)
+
+elf_path, map_path = sys.argv[1], sys.argv[2]
+report = "--report" in sys.argv[3:]
+sd_dir=Path(sys.argv[sys.argv.index('--sd-dir')+1]) if '--sd-dir' in sys.argv else None
+if sd_dir:sd_dir.mkdir(parents=True,exist_ok=True)
+sd_members=[]
+elf = bytearray(open(elf_path, "rb").read())
+(shoff,) = struct.unpack_from("<I", elf, 0x20)
+shentsize, shnum, shstrndx = struct.unpack_from("<HHH", elf, 0x2E)
+secs = [list(struct.unpack_from("<10I", elf, shoff + i * shentsize)) for i in range(shnum)]
+
+
+def cstr(off):
+    return bytes(elf[off : elf.index(b"\0", off)]).decode()
+
+
+names = [cstr(secs[shstrndx][4] + s[0]) for s in secs]
+symtab = secs[names.index(".symtab")]
+strtab_off = secs[symtab[6]][4]
+symbols = {}  # name -> (value, size, shndx)
+symbol_values = []
+funcs = []  # (value, size, name, bind) of functions, for naming addresses
+objects = []  # data object addresses
+for off in range(symtab[4], symtab[4] + symtab[5], 16):
+    st_name, value, size, info, other, shndx = struct.unpack_from("<IIIBBH", elf, off)
+    symbol_values.append(value)
+    name = cstr(strtab_off + st_name)
+    symbols.setdefault(name, (value, size, shndx))
+    if info & 0xF == 2 and size:  # STT_FUNC
+        funcs.append((value, size, name, info >> 4))
+    elif info & 0xF == 1 and size:  # STT_OBJECT
+        objects.append(value)
+funcs.sort()
+
+
+def sym(name):
+    if name not in symbols:
+        sys.exit(f"overlay_image: {name} is not linked (is components/tab5-emu/overlay.ld in the link?)")
+    return symbols[name][0]
+
+
+def holder(addr):
+    """the loaded section that holds addr: (index, file offset)"""
+    for i, s in enumerate(secs):
+        # (the store is INIT_ARRAY: it also holds the constructor tables)
+        if s[1] not in (0, SHT_NOBITS) and s[2] & SHF_ALLOC and s[3] <= addr < s[3] + s[5]:
+            return i, s[4] + addr - s[3]
+    return None, None
+
+
+ovl_start, ovl_end = sym("_tab5_ovl_start"), sym("_tab5_ovl_end")
+ovl_objects = [v for v in objects if ovl_start <= v < ovl_end]
+
+# 1. store (the overlay members, and .tab5_res: PSRAM code filled at boot)
+def slot_of(name):
+    return "_tab5_res_lma" if name == ".tab5_res" else f"_tab5_ovl_{name[len('.tab5_ovl.'):]}_lma"
+
+
+stored = 0
+for i, name in enumerate(names):
+    if not (name.startswith(".tab5_ovl.") or name == ".tab5_res") or secs[i][1] != SHT_PROGBITS:
+        continue
+    core = name[len(".tab5_ovl.") :] if name != ".tab5_res" else "resident PSRAM code"
+    size = secs[i][5]
+    if size:
+        lma = sym(slot_of(name))
+        hi, foff = holder(lma)
+        external=sd_dir is not None and name.startswith('.tab5_ovl.')
+        slot_bytes=48 if external else size
+        if hi is None or names[hi] != ".flash.tab5_ovl_store" or lma + slot_bytes > secs[hi][3] + secs[hi][5]:
+            sys.exit(f"overlay_image: the {core} slot at {lma:#x} is not inside .flash.tab5_ovl_store")
+        payload=bytes(elf[secs[i][4]:secs[i][4]+size])
+        if external:
+            # The optional native game also holds locally extracted assets.
+            # Other cores keep their original 8 MiB payload limit.
+            maximum=(16 if core=='sm64' else 8)*1024*1024
+            header=descriptor(payload,secs[i][3],maximum);sha=verify(header,payload,secs[i][3])
+            target=sd_dir/(core+'-'+sha+'.bin')
+            if target.exists():
+                if target.read_bytes()!=payload:raise ValueError('Existing SD core does not match: '+str(target))
+            else:
+                with target.open('xb') as out:out.write(payload)
+            elf[foff:foff+48]=header
+            sd_members.append(dict(core=core,file=target.name,bytes=size,load_address=secs[i][3],sha256=sha))
+        else:elf[foff:foff+size]=payload
+        stored += size
+    struct.pack_into("<I", elf, shoff + i * shentsize + 4, SHT_NOBITS)
+    secs[i][1] = SHT_NOBITS
+if sd_dir:
+    known={m['core'] for m in sd_members}
+    for i,name in enumerate(names):
+        if not name.startswith('.tab5_ovl.') or not secs[i][5]:continue
+        core=name[len('.tab5_ovl.'):]
+        if core in known:continue
+        _,foff=holder(sym(slot_of(name)));header=bytes(elf[foff:foff+48]);sha=header[16:48].hex()
+        target=sd_dir/(core+'-'+sha+'.bin');verify(header,target.read_bytes(),secs[i][3])
+        sd_members.append(dict(core=core,file=target.name,bytes=secs[i][5],load_address=secs[i][3],sha256=sha))
+    (sd_dir/'manifest.json').write_text(json.dumps({'format':'tab5-sd-cores-v1','cores':sd_members},indent=2)+'\n')
+res_i = names.index(".tab5_res") if ".tab5_res" in names else None
+
+
+def section_bytes(i):
+    """a section's contents: from the file, or for .tab5_res (NOBITS once
+    stored) from its slot in the store"""
+    sec = secs[i]
+    if sec[1] == SHT_PROGBITS:
+        return bytes(elf[sec[4] : sec[4] + sec[5]])
+    if i == res_i and sec[5]:
+        _, foff = holder(sym("_tab5_res_lma"))
+        return bytes(elf[foff : foff + sec[5]])
+    return None
+
+
+if stored:
+    open(elf_path, "wb").write(elf)
+    print(f"overlay_image: {stored // 1024} KB of core code stored in flash; overlay {ovl_start:#x}-{ovl_end:#x} "
+          f"({(ovl_end - ovl_start) // 1024} KB of PSRAM)")
+
+# input sections from the map: (start, size, file, section name), and its
+# cross-reference table: demangled symbol -> the files that reference it
+inputs, refs = [], {}
+lines = open(map_path, errors="replace").read().split("\n")
+start = next(i for i, l in enumerate(lines) if l.startswith("Linker script and memory map"))
+pending = None
+row = re.compile(r"^ (\S+)?\s+0x([0-9a-f]+)\s+0x([0-9a-f]+) (\S.*)$")
+for k in range(start, len(lines)):
+    line = lines[k]
+    if line.startswith("Cross Reference Table"):
+        cref = k
+        break
+    m = row.match(line)
+    if m:
+        sec = m.group(1) or pending
+        addr, size = int(m.group(2), 16), int(m.group(3), 16)
+        if size and addr:
+            inputs.append((addr, size, m.group(4).strip(), sec or ""))
+        pending = None
+    elif line.startswith(" ") and not line.startswith("  ") and len(line.split()) == 1:
+        pending = line.strip()
+    else:
+        pending = None
+else:
+    cref = len(lines)
+current = None
+for line in lines[cref + 3 :]:
+    if not line.strip():
+        continue
+    if line[0] != " ":
+        current, _, file = line.rstrip().rpartition(" ")
+        current = current.strip()
+        refs[current] = []  # the first file defines it
+    elif current is not None:
+        refs[current].append(line.strip())
+inputs.sort()
+input_starts = [x[0] for x in inputs]
+
+
+def attribute(addr):
+    """(file, input section) of a resident address (the overlay members overlap: not for those)"""
+    j = bisect.bisect_right(input_starts, addr) - 1
+    if j >= 0 and inputs[j][0] <= addr < inputs[j][0] + inputs[j][1]:
+        return inputs[j][2], inputs[j][3]
+    return "?", "?"
+
+
+resident_funcs = [f for f in funcs if not ovl_start <= f[0] < ovl_end]
+resident_starts = [f[0] for f in resident_funcs]
+
+
+def func_at(addr):
+    """the resident function at addr (they do not overlap)"""
+    j = bisect.bisect_right(resident_starts, addr) - 1
+    if j >= 0 and addr < resident_funcs[j][0] + resident_funcs[j][1]:
+        return resident_funcs[j]
+    return None
+
+
+ovl_funcs = [f for f in funcs if ovl_start <= f[0] < ovl_end]
+# where an overlay function or table (with --overlay-rodata) starts
+ovl_func_starts = {f[0] for f in ovl_funcs} | {v for v in ovl_objects}
+
+
+def overlay_names(addr):
+    """the overlay symbols at addr (one per core whose code has a function there)"""
+    return sorted({n for v, s, n, b in ovl_funcs if v <= addr < v + s})[:4]
+
+
+def core_of(file):
+    for c in CORES:
+        if f"/lib{c}.a(" in file or file.startswith(f"lib{c}.a("):
+            return c
+    return None
+
+
+demangled = {}
+
+
+def demangle(names_):
+    tool = shutil.which("riscv32-esp-elf-c++filt") or shutil.which("c++filt")
+    todo = [n for n in names_ if n not in demangled]
+    if not todo:
+        return
+    out = subprocess.run([tool], input="\n".join(todo), capture_output=True, text=True).stdout.split("\n") if tool else todo
+    for n, d in zip(todo, out):
+        demangled[n] = d
+
+
+problems, allowed = [], []
+in_ovl = lambda a: ovl_start <= a < ovl_end
+
+# 2a. boot-time constructors
+ia = names.index(".flash.init_array") if ".flash.init_array" in names else None
+if ia is not None:
+    s = secs[ia]
+    for (w,) in struct.iter_unpack("<I", elf[s[4] : s[4] + s[5]]):
+        if in_ovl(w):
+            problems.append(f"boot constructor {w:#x} ({', '.join(overlay_names(w))}) is in the overlay")
+
+# 2b. resident code: auipc / lui, then jalr / addi / a load or store on that
+# register (within 256 bytes: the compiler hoists the lui of an address)
+hits = []  # (instruction address, target)
+relocation_code = set()
+for relocation in secs:
+    if relocation[1] != 4 or relocation[6] != names.index('.symtab'):
+        continue
+    section = secs[relocation[7]]
+    if not section[2] & SHF_EXECINSTR or not section[2] & SHF_ALLOC or in_ovl(section[3]):
+        continue
+    relocation_code.add(relocation[7])
+    hits.extend(relocated_code_references(elf[relocation[4]:relocation[4]+relocation[5]], symbol_values, ovl_start, ovl_end))
+if '--require-relocs' in sys.argv and not relocation_code:
+    sys.exit('overlay_image: retained code relocations required for this profile')
+for i, s in enumerate(secs):
+    if not (s[2] & SHF_EXECINSTR) or not (s[2] & SHF_ALLOC) or in_ovl(s[3]):
+        continue
+    if i in relocation_code:
+        continue  # exact linker provenance supersedes the immediate-value heuristic
+    data = section_bytes(i)
+    if not data:
+        continue
+    hw = array("H")
+    hw.frombytes(data[: len(data) & ~1])
+    base, n, k = s[3], len(hw), 0
+    recent = {}
+    while k < n - 1:
+        h = hw[k]
+        if h & 3 != 3:
+            k += 1
+            continue
+        ins = h | (hw[k + 1] << 16)
+        op = ins & 0x7F
+        if op == 0x17 or op == 0x37:  # auipc / lui
+            addr = base + 2 * k
+            recent[(ins >> 7) & 31] = (((addr if op == 0x17 else 0) + (ins & 0xFFFFF000)) & 0xFFFFFFFF, addr)
+        elif ((op == 0x67 or op == 0x13) and not (ins >> 12) & 7) or op == 0x03 or op == 0x07:
+            # jalr / addi / loads (integer, FP): imm[11:0] at bit 20
+            r = recent.pop((ins >> 15) & 31, None)
+            if r:
+                addr = base + 2 * k
+                imm = ins >> 20
+                target = (r[0] + (imm - 4096 if imm & 2048 else imm)) & 0xFFFFFFFF
+                if addr - r[1] <= 256 and ovl_start <= target < ovl_end:
+                    hits.append((r[1], target))
+        elif op == 0x23 or op == 0x27:  # stores: imm split
+            r = recent.get((ins >> 15) & 31)
+            if r:
+                addr = base + 2 * k
+                imm = ((ins >> 25) << 5) | ((ins >> 7) & 31)
+                target = (r[0] + (imm - 4096 if imm & 2048 else imm)) & 0xFFFFFFFF
+                if addr - r[1] <= 256 and ovl_start <= target < ovl_end:
+                    hits.append((r[1], target))
+        k += 2
+
+callers = {}
+for at, target in hits:
+    callers.setdefault(func_at(at), []).append((at, target))
+demangle([f[2] for f in callers if f])
+for f, targets in callers.items():
+    at, target = targets[0]
+    file, sec = attribute(at)
+    core = core_of(file)
+    name = f[2] if f else f"{at:#x}"
+    what = (f"code: {name} [{file} {sec}] -> {target:#x} ({' / '.join(overlay_names(target))})"
+            + (f" and {len(targets) - 1} more" if len(targets) > 1 else ""))
+    # (ext_ram_data.c: .tab5_res's end, which is where the overlay starts)
+    if file.endswith(CART_FILES) or file.endswith(("(overlay.c.obj)", "(ext_ram_data.c.obj)")):
+        ok = True
+    elif core is None:
+        ok = False
+    elif not sec.startswith(".text"):
+        ok = True  # the core's code in internal RAM
+    elif f is None or f[3] == 0:
+        ok = True  # local: only its own object (the core's) calls it
+    else:
+        users = refs.get(demangled.get(f[2], f[2]))
+        ok = users is not None and all(core_of(u) == core for u in users)
+        if not ok:
+            what += f"; used by {', '.join(sorted({u for u in (users or ['?']) if core_of(u) != core})[:3])}"
+    (allowed if ok else problems).append(what)
+
+# 2c. resident data: addresses of overlay functions (the PSRAM data's
+# initial copy in flash is attributed to its .ext_ram.data address)
+img = symbols.get("tab5_ext_ram_data_image")
+ext_start = symbols.get("_ext_ram_data_start", (0,))[0]
+for i, s in enumerate(secs):
+    if (s[1] == 0 or not (s[2] & SHF_ALLOC) or in_ovl(s[3]) or names[i] == ".flash.tab5_ovl_store"
+            or (s[2] & SHF_EXECINSTR and not s[2] & SHF_WRITE and i != res_i)):
+        continue
+    data = section_bytes(i) if s[1] != SHT_NOBITS or i == res_i else None
+    if not data:
+        continue
+    words = array("I")
+    words.frombytes(data[: len(data) & ~3])
+    for o in [o for o, w in enumerate(words) if w in ovl_func_starts]:
+        w = words[o]
+        addr = s[3] + 4 * o
+        if img and img[0] <= addr < img[0] + img[1]:
+            addr = ext_start + addr - img[0]
+        file, sec = attribute(addr)
+        # Text in the mixed resident PSRAM section is instruction-checked
+        # above. Avoid interpreting arbitrary RISC-V instruction bytes as a
+        # pointer while retaining data/vtable checks in the same output section.
+        if not resident_data_references(sec, data[4 * o:4 * o + 4], ovl_func_starts):
+            continue
+        # merged strings (.str1.N) hold no addresses: four of their characters
+        # that happen to spell an overlay function's address (" 60H" =
+        # 0x48303620) are not a reference
+        if re.search(r"\.str\d*\.\d+$", sec or ""):
+            continue
+        if core_of(file) and not report:
+            allowed.append(None)  # (named only when printed: naming is slow)
+            continue
+        what = f"data: {sec} [{file}] @{addr:#x} -> {w:#x} ({' / '.join(overlay_names(w))})"
+        (allowed if core_of(file) else problems).append(what)
+
+if report:
+    for a in allowed:
+        print("overlay_image: allowed", a)
+if problems:
+    for p in sorted(set(problems)):
+        print("overlay_image: ERROR", p)
+    sys.exit(f"overlay_image: {len(set(problems))} references into the core overlay from code that is not in it "
+             "(see the script's docstring)")
+print(f"overlay_image: checked: {len(allowed)} functions / tables reach into the overlay, all the carts', "
+      "the loader's or the cores' own")

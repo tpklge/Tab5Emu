@@ -1,0 +1,11 @@
+[
+  {
+    "sha256": "1d9a0e22e73d297e1e789d17fe461d5585a6087b64bb3ed876470619498d5ba5",
+    "image_size": 4024816,
+    "project": "tab5-emu",
+    "version": "0.1.16",
+    "hash_verified": true,
+    "accepted": true,
+    "trailing_data_rejected": true
+  }
+]

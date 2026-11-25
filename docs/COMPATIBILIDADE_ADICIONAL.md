@@ -1,0 +1,33 @@
+# Compatibilidade adicional — desenvolvimento 0.1.15
+
+## Game Boy: MBC2 e RTC
+
+A adaptação local do mapper MBC2 limita os dados a quatro bits, espelha a RAM a cada 512 endereços e trata a seleção de banco zero como banco um. Mantém o contêiner de SRAM de 8 KiB usado pelo port anterior: os primeiros 512 bytes guardam os nibbles, sem compactar dois nibbles por byte. Isso preserva o tamanho dos saves/estados existentes; não é exportação automática para todo formato usado por outros emuladores. Bits altos de leitura são preenchidos com 1, sem depender deles no teste.
+
+O RTC MBC3 usa contador de 9 bits, carry persistente e halt. O tick vem dos ciclos realmente emulados, incluindo períodos de LCD desligado. O snapshot `rtc-v2.bin` tem 40 bytes e acrescenta timestamp do relógio físico. A migração lê `rtc-v1.bin` sem sobrescrevê-lo e corrige a representação antiga do bit alto do dia. Os dois formatos continuam protegidos pelo BatteryStore/journal.
+
+Ao carregar, o relógio avança pelo intervalo desligado somente quando há timestamp anterior e leitura física confiável. Se houve perda de tensão, data inválida ou o relógio voltou no tempo, não se inventa um intervalo. Acesso ao RX8130CE usa o barramento existente e não chama a inicialização do BSP que faria reset. `settings.clock_epoch` mostra UTC Unix, ou zero quando não confiável. O comando explícito `settings clock_epoch=<Unix UTC>` ajusta o RTC e confere a leitura; o limite do comando numérico atual é 2038. A função interna usa timestamp de 64 bits. O acesso valida BCD, data, STOP e perda de tensão, repete leitura em virada de segundo e usa weekday one-hot no ajuste, conforme o [manual Epson RX8130CE](https://download.epsondevice.com/td/pdf/app/RX8130CE_en.pdf). O ajuste escreve data/hora, preserva os demais bits de controle, libera STOP e limpa apenas a indicação de perda de tensão; não reinicializa alarmes/timers. Ajustes manuais do relógio podem alterar o intervalo percebido pelos cartuchos.
+
+Referências de comportamento: [Pan Docs MBC2](https://github.com/gbdev/pandocs/blob/master/src/MBC2.md) e [MBC3](https://github.com/gbdev/pandocs/blob/master/src/MBC3.md). O código continua derivado do gnuboy fixado, com licença e fontes preservadas.
+
+No stable 0.1.16, o RTC MBC3 também avança durante a pausa usando tempo monotônico, independente de ajustes na data física. O bit halt impede esse avanço. Flush e retomada consomem apenas o intervalo ainda não aplicado. Carregar um estado restaura seu RTC e reinicia a referência da pausa: o tempo anterior ao load não é somado à linha do tempo restaurada. Os registradores latched permanecem congelados até o próximo latch solicitado pelo jogo. Durante execução normal, o tick continua vindo dos ciclos emulados. As duas fontes de tempo não são somadas para um mesmo intervalo.
+
+## Mega Drive: SMD e seis botões
+
+SMD é validado antes de desentrelaçar: header reconhecido, payload em blocos completos de 16 KiB, limite de 8 MiB e staging de um bloco com falha recuperável de alocação. O hash/namespace identifica o arquivo original. MD e SMD da mesma ROM terão identidades de arquivo distintas; não se unem saves implicitamente. O limite efetivo também depende da arena de ROM do aparelho.
+
+A opção de seis botões fica nas configurações e é aplicada no próximo boot do jogo. Preserva J=A, K=B, O=C; acrescenta I=X, U=Y, P=Z e Y=Mode, todos remapeáveis. O protocolo usa transições TH e timeout em scanlines emuladas. O tick é chamado nos caminhos de CPU/vídeo de um e dois núcleos, inclusive vblank; o primeiro ensaio físico encontrou e corrigiu a ausência do tick no caminho rápido. Mode+Start chega ao jogo; o acesso ao frontend continua por touch, BOOT, Esc ou Home do controle. O formato de estado MD versão 2 acrescenta a fase do pad no header reservado e aceita estados versão 1; versões antigas do app não abrem os novos estados. A gravação mantém `.bak` da geração anterior. O modo de controle permanece a preferência do boot; carregar um estado feito com outro modo reinicia o handshake, sem mudar silenciosamente o mapa de entrada.
+
+O protocolo foi conferido contra a descrição do handshake no [código de referência do controlador Genesis Plus GX](https://github.com/ekeeke/Genesis-Plus-GX/blob/master/core/input_hw/gamepad.c). A implementação local não incorpora esse código. As fontes GPL do gwenesis e suas adaptações acompanham a distribuição.
+
+## Mega Drive: EEPROM serial
+
+A adaptação local implementa X24C01 de 128 bytes nas placas Sega e EA, e X24C02 de 256 bytes na Acclaim 16M. Seleciona pelo código de produto do header, com prioridade para patches que declaram SRAM linear. Placas desconhecidas com header serial não são interpretadas como SRAM. Os códigos conhecidos incluem Rings of Power/NHLPA 93/Madden 93/Bill Walsh, Wily Wars/Rockman Mega World/Wonder Boy/Evander/Greatest Heavyweights, e NBA Jam original. A identificação permite selecionar a placa; não certifica a execução integral desses jogos.
+
+O modelo usa START/STOP/repeated START, ACK/NACK, leitura sequencial com wrap e escrita por página de quatro bytes, confirmada em STOP. Um reset descarta a página não concluída. O tempo elétrico de programação não é simulado: os dados ficam disponíveis ao concluir STOP. O buffer persistente existente é reutilizado, sem nova arena de cartucho. BatteryStore protege a bateria pelo mesmo journal/backup de SRAM. O estado MD v4 acrescenta 32 bytes ao header e preserva a transação serial em andamento, além de CPU/VDP/pad e EEPROM; estados SRAM v1–v3 mantêm seu formato e validação anteriores.
+
+O protocolo foi implementado a partir dos datasheets do fabricante [Xicor X24C01](https://image02.seesaawiki.jp/f/e/famicomcartridge/8e9eac176ff52e58.pdf) e [X24C02](https://docs.rs-online.com/d895/0900766b80029b1c.pdf) (endereçamento com control byte). O mapeamento de placas/códigos de produto foi conferido na [base de referência do Genesis Plus GX](https://github.com/ekeeke/Genesis-Plus-GX/blob/master/core/cart_hw/eeprom_i2c.c). Nenhum código dessa implementação foi incorporado. O modelo e os testes locais são originais; o port gwenesis continua GPLv3.
+
+O teste host usa barramento simulado e instruções reais do M68000 com três ROMs originais 0BSD. Exercita ACK, wrap, páginas, STOP, reset, snapshots de transação, leitura/gravação pelo guest e reinicialização. O ensaio físico correspondente usa somente essas ROMs próprias e registra o ELF. Acclaim 32M, J-Cart, outras EEPROMs/mappers e variantes adicionais de EEPROM/Flash GBA continuam pendentes de adaptação/cobertura específica.
+
+Para recuperar dados antigos, consulte [SAVES_ANTIGOS.md](SAVES_ANTIGOS.md). A importação por ROM explícita conserva a origem e recusa layouts incompatíveis.

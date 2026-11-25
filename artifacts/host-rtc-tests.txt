@@ -1,0 +1,1 @@
+RTC: actual core day-high/latch/512-day carry, halt and constant-time offline arithmetic OK

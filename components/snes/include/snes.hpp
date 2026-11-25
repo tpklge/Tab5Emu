@@ -1,0 +1,25 @@
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+#include <span>
+#include <string>
+#include <string_view>
+
+void reset_snes();
+void init_snes(uint8_t *romdata, size_t rom_data_size);
+/// Load the ROM file straight into the core (no copy in PSRAM)
+void init_snes(const std::string &rom_path);
+/// false: no such state, or the core rejected it
+bool load_snes(std::string_view save_path);
+/// false: the core could not serialize, or the file was not written
+bool save_snes(std::string_view save_path);
+void run_snes_rom();
+void deinit_snes();
+bool initialize_snes_storage(std::string_view rom_sha256);
+bool snes_loaded();
+bool flush_snes_battery();
+uint32_t snes_frames();
+/// Size of the last rendered frame (256 or 512 wide, 224/239/448/478 tall)
+std::pair<size_t, size_t> get_snes_video_size();
+std::span<uint8_t> get_snes_video_buffer();

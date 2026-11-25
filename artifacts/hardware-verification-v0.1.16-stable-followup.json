@@ -1,0 +1,319 @@
+{
+  "sha256": "51fc4bb9260b1c3838fbb465957dfd3a1df4f1961bd2afbff4da4631bd0a2356",
+  "elf_sha256": "0c532fe57d9a0cad282504fc0b7c173792880c3d9571dc3d7379653cc96f59cd",
+  "image_bytes": 4022640,
+  "profile": "stable",
+  "uploaded": true,
+  "received_hash_verified": true,
+  "installed": true,
+  "booted": true,
+  "return_confirmed": true,
+  "physical_tests": true,
+  "reservation_bytes": 4063232,
+  "other_apps_and_layout_preserved": true,
+  "tests": {
+    "host": {
+      "python": 36,
+      "cpp_suites": 7,
+      "c_suites": 2,
+      "sanitizers": [
+        "ASan",
+        "UBSan"
+      ],
+      "passed": true
+    },
+    "gb_rom_validation": {
+      "complete": true,
+      "elf_sha256": "0c532fe57d9a0cad282504fc0b7c173792880c3d9571dc3d7379653cc96f59cd",
+      "fixture_sha256": "b17acdc178031b2684553a43217b3a1741285c0f2db520d5aef048d238c326db",
+      "refusals": [
+        {
+          "case": "short_header",
+          "message": "ROM GB/GBC truncada: cabecalho incompleto.",
+          "returned_to_library": true
+        },
+        {
+          "case": "missing_banks",
+          "message": "ROM GB/GBC truncada: faltam bancos declarados no cabecalho.",
+          "returned_to_library": true
+        },
+        {
+          "case": "unsupported_mapper",
+          "message": "Mapper GB/GBC ainda nao suportado por este nucleo.",
+          "returned_to_library": true
+        },
+        {
+          "case": "unsupported_geometry",
+          "message": "Tamanho de ROM GB/GBC nao suportado por este nucleo.",
+          "returned_to_library": true
+        },
+        {
+          "case": "invalid_ram",
+          "message": "Tamanho de RAM GB/GBC invalido no cabecalho.",
+          "returned_to_library": true
+        }
+      ],
+      "original_rom_restored": true
+    },
+    "sram": [
+      {
+        "system": "gb",
+        "rom_sha256": "b17acdc178031b2684553a43217b3a1741285c0f2db520d5aef048d238c326db",
+        "boots": [
+          {
+            "counter": 25,
+            "loaded_state": false,
+            "saved_state": true,
+            "frames_before_quit": 23
+          },
+          {
+            "counter": 26,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 22
+          },
+          {
+            "counter": 25,
+            "loaded_state": true,
+            "saved_state": false,
+            "frames_before_quit": 23
+          },
+          {
+            "counter": 26,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 22
+          }
+        ],
+        "complete": true,
+        "normal_save_survives_cold_core_init": true,
+        "state_restores_sram": true,
+        "previous_distinct_generation_preserved": true,
+        "recovery_not_repeated": "existing rejected fixture preserved",
+        "invalid_state_rejected": true,
+        "invalid_state_fixture_removed": true
+      },
+      {
+        "system": "gbc",
+        "rom_sha256": "eb25bcf2d6ab19605e70572ee80595e2f4f5704e037bc82290a33a435c92acec",
+        "boots": [
+          {
+            "counter": 20,
+            "loaded_state": false,
+            "saved_state": true,
+            "frames_before_quit": 19
+          },
+          {
+            "counter": 21,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 23
+          },
+          {
+            "counter": 20,
+            "loaded_state": true,
+            "saved_state": false,
+            "frames_before_quit": 22
+          },
+          {
+            "counter": 21,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 23
+          }
+        ],
+        "complete": true,
+        "normal_save_survives_cold_core_init": true,
+        "state_restores_sram": true,
+        "previous_distinct_generation_preserved": true,
+        "recovery_not_repeated": "existing rejected fixture preserved",
+        "invalid_state_rejected": true,
+        "invalid_state_fixture_removed": true
+      },
+      {
+        "system": "snes",
+        "rom_sha256": "8d54cd75ecfecb2cb3a05da92ee284da6b6f92061af1bc987b8a4a3e13d19e16",
+        "boots": [
+          {
+            "counter": 24,
+            "loaded_state": false,
+            "saved_state": true,
+            "frames_before_quit": 29
+          },
+          {
+            "counter": 25,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 19
+          },
+          {
+            "counter": 24,
+            "loaded_state": true,
+            "saved_state": false,
+            "frames_before_quit": 19
+          },
+          {
+            "counter": 25,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 19
+          }
+        ],
+        "complete": true,
+        "normal_save_survives_cold_core_init": true,
+        "state_restores_sram": true,
+        "previous_distinct_generation_preserved": true,
+        "recovery_not_repeated": "existing rejected fixture preserved",
+        "invalid_state_rejected": true,
+        "invalid_state_fixture_removed": true
+      }
+    ],
+    "gba": {
+      "jit_activation_rejected": true,
+      "tone_window": {
+        "seconds": 20.023900416999822,
+        "source": "own 0BSD GBA diagnostic, ~440 Hz tone",
+        "backend": "gpsp-interpreter",
+        "sink_delta": {
+          "blocks": 1201,
+          "partial_blocks": 0,
+          "empty_blocks": 0,
+          "missing_frames": 0,
+          "write_errors": 0
+        }
+      },
+      "pause_stops_producer": true,
+      "max_submit_gap_after_resume_us": 22515,
+      "pause_gap_excluded": true,
+      "gba_persistence": {
+        "firmware": "0.1.16",
+        "initial": {
+          "counter_units": 3,
+          "marker": [
+            120,
+            110
+          ],
+          "marker_color": 65503
+        },
+        "diagonal": {
+          "counter_units": 3,
+          "marker": [
+            132,
+            98
+          ],
+          "marker_color": 65503
+        },
+        "button_a": {
+          "counter_units": 3,
+          "marker": [
+            132,
+            98
+          ],
+          "marker_color": 1984
+        },
+        "incremented": {
+          "counter_units": 4,
+          "marker": [
+            132,
+            98
+          ],
+          "marker_color": 65503
+        },
+        "second_increment": {
+          "counter_units": 5,
+          "marker": [
+            132,
+            98
+          ],
+          "marker_color": 65503
+        },
+        "state_restored": {
+          "counter_units": 4,
+          "marker": [
+            132,
+            98
+          ],
+          "marker_color": 65503
+        },
+        "battery": {
+          "size": 131072,
+          "first_two_bytes": "5423",
+          "sha256": "4813cd1adcc1ab12a1748402ca93c8355d8edaabcf8aaed724f89e873d2b1805"
+        },
+        "savestate_preserves_latest_sram": true,
+        "fresh_boot_battery": {
+          "counter_units": 5,
+          "marker": [
+            120,
+            110
+          ],
+          "marker_color": 65503
+        },
+        "previous_distinct_generation_preserved": true,
+        "backup_valid": true
+      }
+    },
+    "compatibility": {
+      "firmware": "0.1.16",
+      "elf_sha256": "0c532fe57d9a0cad282504fc0b7c173792880c3d9571dc3d7379653cc96f59cd",
+      "complete": true,
+      "rtc": {
+        "clock_day": 1,
+        "clock_seconds": 31,
+        "carry": 1,
+        "latched_registers": [
+          31,
+          3,
+          1,
+          1,
+          128
+        ],
+        "offline_advance_seconds": 4
+      },
+      "mbc2": {
+        "nibble_write": 11,
+        "mirror_read": 11,
+        "zero_bank_alias": 7,
+        "container_bytes": 8192
+      },
+      "md": {
+        "rom_sha256": "7910847b8b4a7616b064d2dfb69e0d6582b477fb536613ea490695de6f8716b3",
+        "six_button_snapshot": "1310701f",
+        "mode_start_reaches_guest": true,
+        "battery_bytes": 8192
+      },
+      "state_keeps_current_controller_mode_both_directions": true,
+      "controller_state_disposable_slot": 2,
+      "smd": {
+        "rom_sha256": "505e5dc513ecad10646257bb0d94c039cae1972b853b37d24eabf7d2a93c1527",
+        "six_button_snapshot": "1310701f",
+        "mode_start_reaches_guest": true,
+        "battery_bytes": 8192
+      }
+    },
+    "return": {
+      "complete": true,
+      "native_usb_enumerated_before_console_open": true,
+      "apps_and_layout_unchanged": true,
+      "launcher_version": "0.8.0-rc.2"
+    },
+    "final_state": "menu",
+    "final_coredump_bytes": 0,
+    "jit_compiled": false,
+    "gba_cpu_requested": 0,
+    "ui_error_label_visually_checked": true,
+    "usb_pad_aggregation_host_tests": true
+  },
+  "limitations": [
+    "Two physical USB pads and A164 hotplug/rollover still require their own hardware tests.",
+    "Sink counters do not measure acoustic speaker quality or general APU accuracy.",
+    "ROM geometry/mapper checks do not certify all games or mappers.",
+    "RV32/JIT heap corruption remains known; experimental backend disabled; dumps/tests/diagnostics preserved."
+  ],
+  "excluded_test_attempts": [
+    {
+      "report": "stable-followup-compatibility.local.json",
+      "reason": "Old RTC test required day zero; persisted fixture had correctly advanced to day one. Corrected consistency/offline test passed without resetting data."
+    }
+  ]
+}

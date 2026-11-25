@@ -1,0 +1,270 @@
+{
+  "sha256": "492f9dba14830b085e93d6aaab1de85c0f5f753d510ef13ecace9e0572368ad2",
+  "elf_sha256": "884954de93057637d15b8101bf3680870ede738b12711e3f11dbe6b8d6833ade",
+  "image_bytes": 4028784,
+  "profile": "stable",
+  "reservation_bytes": 4063232,
+  "uploaded": true,
+  "received_hash_verified": true,
+  "installed": true,
+  "booted": true,
+  "return_confirmed": true,
+  "physical_tests": true,
+  "other_apps_and_layout_preserved": true,
+  "plan": {
+    "app_only": true,
+    "slot": 4,
+    "reservation_bytes": 4063232,
+    "other_apps_preserved": true,
+    "bootloader_replacement": false,
+    "partition_table_replacement": false
+  },
+  "tests": {
+    "eeprom": {
+      "complete": true,
+      "elf_sha256": "884954de93057637d15b8101bf3680870ede738b12711e3f11dbe6b8d6833ade",
+      "boards": {
+        "sega": {
+          "rom_sha256": "325aa020d79f337a828c1d412e4467f1dc15b4acc235f3ca03f8d49c30bbd0c2",
+          "complete": true,
+          "counter_before": 8,
+          "first_counter": 9,
+          "second_counter": 10,
+          "bytes": 128,
+          "state_version": 4,
+          "state_bytes": 147238,
+          "state_restores_eeprom": true,
+          "cold_boot_reads_eeprom": true,
+          "start_guest_write": true,
+          "previous_battery_retained": true,
+          "invalid_states_rejected": [
+            "digest",
+            "board",
+            "protocol_counter"
+          ]
+        },
+        "ea": {
+          "rom_sha256": "ae7f323d90af775314d9afa659eb6020a602bc035fcd15031abad8b38e412802",
+          "complete": true,
+          "legacy_import": {
+            "source_sha256": "8ad2461ce42617922d03dbe509dd55b25ef68df170d93d555caec4350d0a6f60",
+            "original_preserved": true,
+            "journal_sha256": "faf020ad6e71ccfd12b0250d50027ceaf381655fce9c1e3083dea1791e334dfc"
+          },
+          "counter_before": 7,
+          "first_counter": 8,
+          "second_counter": 9,
+          "bytes": 128,
+          "state_version": 4,
+          "state_bytes": 147238,
+          "state_restores_eeprom": true,
+          "cold_boot_reads_eeprom": true,
+          "start_guest_write": true,
+          "previous_battery_retained": true,
+          "invalid_states_rejected": [
+            "digest",
+            "board",
+            "protocol_counter"
+          ]
+        },
+        "acclaim16": {
+          "rom_sha256": "f80eefbbce3eeef8e01ab864ac3addcfa00ee3b8d1ab579b960f7ce540d68f0e",
+          "complete": true,
+          "legacy_import": {
+            "source_sha256": "0d738157bfa6132f889aede090c4697636319143f33328318a888f934a1f9381",
+            "original_preserved": true,
+            "journal_sha256": "2f7fca83802f3169e133ed0641aaf4dbfdd2fd02b16bba0187ea55c0f648e449"
+          },
+          "counter_before": 7,
+          "first_counter": 8,
+          "second_counter": 9,
+          "bytes": 256,
+          "state_version": 4,
+          "state_bytes": 147366,
+          "state_restores_eeprom": true,
+          "cold_boot_reads_eeprom": true,
+          "start_guest_write": true,
+          "previous_battery_retained": true,
+          "invalid_states_rejected": [
+            "digest",
+            "board",
+            "protocol_counter"
+          ]
+        }
+      },
+      "catalog_restored": true
+    },
+    "legacy_saves": {
+      "complete": true,
+      "elf_sha256": "884954de93057637d15b8101bf3680870ede738b12711e3f11dbe6b8d6833ade",
+      "systems": {
+        "gb": {
+          "complete": true,
+          "rom_sha256": "59e45dc308c95f4abaa815a7c1a6b0e9dfdb2a7afba2f00141e55274278a38f9",
+          "battery_before": 17,
+          "counter_after_imported_state": 18,
+          "battery_imported": true,
+          "legacy_state_source_bytes": 28672,
+          "migrated_state_bytes": 28672,
+          "state_load_restores_battery": true,
+          "source_preserved": true,
+          "raw_md_converted": false
+        },
+        "gbc": {
+          "complete": true,
+          "rom_sha256": "c92269abdc6c626bdff88425541fbcaca84abd8895bb10d0dd4faf9b864413a0",
+          "battery_before": 17,
+          "counter_after_imported_state": 18,
+          "battery_imported": true,
+          "legacy_state_source_bytes": 61440,
+          "migrated_state_bytes": 61440,
+          "state_load_restores_battery": true,
+          "source_preserved": true,
+          "raw_md_converted": false
+        },
+        "genesis": {
+          "complete": true,
+          "rom_sha256": "a6425fadd3c814b0ade796a3f767f58fda5f41a2a8c884e37f8d5457b7f014d3",
+          "battery_before": 17,
+          "counter_after_imported_state": 18,
+          "battery_imported": true,
+          "legacy_state_source_bytes": 146966,
+          "migrated_state_bytes": 155270,
+          "state_load_restores_battery": true,
+          "source_preserved": true,
+          "raw_md_converted": true
+        }
+      },
+      "catalog_restored": true
+    },
+    "gba": {
+      "complete": true,
+      "elf_sha256": "884954de93057637d15b8101bf3680870ede738b12711e3f11dbe6b8d6833ade",
+      "fixture_sha256": "ab627e010bda9132328e5b2f69b5ec1c98f19a5a45737a9bce1dc4553d03d234",
+      "jit_activation_rejected": true,
+      "tone_window": {
+        "backend": "gpsp-interpreter",
+        "source": "owned 0BSD ~440 Hz tone",
+        "seconds": 20.035446499998216,
+        "sink_delta": {
+          "blocks": 1203,
+          "partial_blocks": 0,
+          "empty_blocks": 0,
+          "missing_frames": 0,
+          "write_errors": 0
+        },
+        "zero_missing_frames": true,
+        "acoustic_measurement": false
+      },
+      "pause_stops_producer": true,
+      "max_submit_gap_after_resume_us": 21997,
+      "persistence": {
+        "firmware": "0.1.16",
+        "initial": {
+          "counter_units": 7,
+          "marker": [
+            120,
+            110
+          ],
+          "marker_color": 65503
+        },
+        "diagonal": {
+          "counter_units": 7,
+          "marker": [
+            132,
+            98
+          ],
+          "marker_color": 65503
+        },
+        "button_a": {
+          "counter_units": 7,
+          "marker": [
+            132,
+            98
+          ],
+          "marker_color": 1984
+        },
+        "incremented": {
+          "counter_units": 8,
+          "marker": [
+            132,
+            98
+          ],
+          "marker_color": 65503
+        },
+        "second_increment": {
+          "counter_units": 9,
+          "marker": [
+            132,
+            98
+          ],
+          "marker_color": 65503
+        },
+        "state_restored": {
+          "counter_units": 8,
+          "marker": [
+            132,
+            98
+          ],
+          "marker_color": 65503
+        },
+        "battery": {
+          "size": 131072,
+          "first_two_bytes": "5431",
+          "sha256": "8c132b251dc657ded4a31a2d7611ae52950e5ff5a552692bc785948108f2d030"
+        },
+        "savestate_preserves_latest_sram": true,
+        "fresh_boot_battery": {
+          "counter_units": 9,
+          "marker": [
+            120,
+            110
+          ],
+          "marker_color": 65503
+        },
+        "previous_distinct_generation_preserved": true,
+        "backup_valid": true
+      }
+    },
+    "return": {
+      "complete": true,
+      "elf_sha256": "884954de93057637d15b8101bf3680870ede738b12711e3f11dbe6b8d6833ade",
+      "coredump_before": 0,
+      "resources": {
+        "fonts_loaded": 4,
+        "font_fallback": false,
+        "theme_error": ""
+      },
+      "native_usb_enumerated_before_console_open": true,
+      "launcher_version": "0.8.0-rc.2",
+      "apps_and_layout_unchanged_at_install": true,
+      "explicit_boot_retry": true,
+      "final_state": "menu",
+      "final_coredump_bytes": 0,
+      "gba_cpu_requested": 0,
+      "gba_cpu_limits": [
+        0,
+        0
+      ]
+    }
+  },
+  "host": {
+    "python_tests": 63,
+    "cpp_suites": 12,
+    "c_suites": 2,
+    "sanitizers": [
+      "ASan",
+      "UBSan"
+    ]
+  },
+  "installation_interruption": "ESP_ERR_INVALID_STATE after completed app4 backup/removal; inspected empty slot and all other apps/layout, read back SD image SHA before new install plan",
+  "limitations": [
+    "GBA interpreter; RV32/JIT disabled; experimental heap corruption remains unresolved; diagnostics preserved.",
+    "EEPROM limited to identified Sega/EA X24C01 and Acclaim16 X24C02 boards; no electrical write-cycle delay.",
+    "Only own 0BSD fixtures tested; no general certification for listed commercial product codes.",
+    "Old saves require explicit ROM binding and matching layout; raw SNES and raw EEPROM/Tekken MD states refused.",
+    "Physical migration GB/GBC/MD; GBA/SNES battery conversions and RTC import covered on host, not with commercial legacy saves.",
+    "Audio zero-missing result describes a 20-second owned tone window; no acoustic measurement.",
+    "No physical SD removal, power-loss, broad A164/pad/hotplug or N64 validation in this delivery."
+  ]
+}

@@ -1,0 +1,1 @@
+settings JSON: transactional validation, bounded preferences, unknown fields, legacy merge and roundtrip OK

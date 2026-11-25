@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "global": {},
+  "systems": {
+    "snes": {
+      "up": "E",
+      "left": "A",
+      "down": "S",
+      "right": "D",
+      "x": "I",
+      "a": "O",
+      "y": "J",
+      "b": "K",
+      "start": "T",
+      "select": "Y",
+      "l": "U",
+      "r": "P",
+      "menu": "ESC"
+    },
+    "gb": {
+      "up": "E",
+      "left": "A",
+      "down": "S",
+      "right": "D",
+      "a": "O",
+      "b": "K",
+      "start": "T",
+      "select": "Y",
+      "menu": "ESC"
+    },
+    "gba": {
+      "up": "E",
+      "left": "A",
+      "down": "S",
+      "right": "D",
+      "a": "O",
+      "b": "K",
+      "start": "T",
+      "select": "Y",
+      "l": "U",
+      "r": "P",
+      "menu": "ESC"
+    },
+    "megadrive": {
+      "up": "E",
+      "left": "A",
+      "down": "S",
+      "right": "D",
+      "a": "J",
+      "b": "K",
+      "c": "O",
+      "start": "T",
+      "menu": "ESC"
+    }
+  },
+  "games": {}
+}

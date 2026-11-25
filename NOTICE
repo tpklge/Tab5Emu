@@ -1,0 +1,20 @@
+Tab5Emu for M5Stack Tab5 / Launcher do Paludo
+
+Original contributions and integration changes in this project are licensed
+under GNU GPL version 3 or, at your option, any later version (GPL-3.0-or-later).
+See LICENSE. Copyright 2026 Tab5Emu contributors.
+
+This project derives from esp-cpp/tab5-emu (upstream base d120517).
+Copyright (c) 2022 esp-cpp. Its MIT notice is preserved in
+LICENSES/Tab5Emu-upstream-MIT.txt and continues to apply to upstream code.
+
+Third-party components retain their own licenses and notices. GPL adoption
+for the project does not relicense those components or remove their terms.
+See docs/LICENCAS.md, dependency manifests, and license files alongside each
+component. Binary releases include corresponding sources and these notices.
+The entire combined firmware is not asserted to have a single license.
+
+The SM64 ROM and ROM-derived graphics/audio module are not distributed.
+Generate that module locally from your own matching ROM using the supplied
+preparation/build tools. Upstream native engine sources are pinned in the
+third_party/sm64-native-reference submodule; extraction modifies only .tools.

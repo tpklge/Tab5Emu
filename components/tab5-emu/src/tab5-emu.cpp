@@ -1,0 +1,1191 @@
+#include "tab5-emu.hpp"
+
+#include "esp_attr.h"
+
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+#include <fstream>
+
+#include <esp_cache.h>
+#include <esp_cpu.h>
+#include <esp_heap_caps.h>
+#include <esp_private/esp_cache_private.h>
+
+#include "statistics.hpp"
+#include "touch_controls.hpp"
+
+using namespace std::chrono_literals;
+
+// The LVGL rotation that makes the (portrait-native, 720x1280) panel a
+// 1280x720 landscape screen. Flip to 270 if the image is upside down for the
+// way you hold the Tab5.
+static constexpr lv_display_rotation_t LANDSCAPE_ROTATION = LV_DISPLAY_ROTATION_90;
+
+Tab5Emu::Tab5Emu()
+    : espp::BaseComponent("Tab5Emu", espp::Logger::Verbosity::INFO) {
+  usb_msc_restore_console();
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Board
+/////////////////////////////////////////////////////////////////////////////
+
+bool Tab5Emu::initialize_tab5() {
+  // the video tile first: it needs one 64 KB block of internal RAM, which the
+  // BSP's own allocations (its rotation tile, audio DMA) can otherwise split
+  ensure_tile_buffer();
+  auto &bsp = Bsp::get();
+  if (!bsp.initialize_io_expanders()) {
+    logger_.error("Failed to initialize IO expanders");
+    return false;
+  }
+  // every LVGL flush is rotated (landscape), so it goes through the PPA and
+  // the DPI panel's DMA2D copies would never run: leave them off (~3 KB of
+  // internal DMA-capable RAM)
+  if (!bsp.initialize_lcd(Bsp::LcdConfig{.dma2d_enabled = false})) {
+    logger_.error("Failed to initialize LCD");
+    return false;
+  }
+  // a twentieth of the screen per LVGL draw buffer (double buffered): they stay
+  // allocated while a game runs, for the pause menu. With the launcher's
+  // backdrop in 64 px tiles (emu-ui Metrics::pattern_px) a scroll redraws in
+  // ~41 ms with these against ~37 ms with tenths, and every game keeps the
+  // other 184 KB of PSRAM.
+  static constexpr size_t pixel_buffer_size = Bsp::display_width() * Bsp::display_height() / 20;
+  if (!bsp.initialize_display(pixel_buffer_size)) {
+    logger_.error("Failed to initialize display");
+    return false;
+  }
+  // make the LVGL screen landscape; the BSP's flush rotates via the PPA
+  lv_display_set_rotation(lv_display_get_default(), LANDSCAPE_ROTATION);
+
+  if (!bsp.initialize_touch(std::bind_front(&Tab5Emu::on_touch, this))) {
+    logger_.error("Failed to initialize touch");
+    return false;
+  }
+  // the BOOT button requests the in-game menu
+  if (!bsp.initialize_button([this](const espp::Interrupt::Event &event) {
+        if (event.active) {
+          input_activity();
+          if (screen_sleeping_ || wake_block_) return;
+          menu_requested_ = true;
+          espp::EventManager::get().publish(menu_button_topic, {});
+        }
+      })) {
+    logger_.warn("Failed to initialize the BOOT button");
+  }
+  bsp.brightness(75.0f);
+  return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// SD card
+/////////////////////////////////////////////////////////////////////////////
+
+bool Tab5Emu::initialize_sdcard() {
+  auto &bsp = Bsp::get();
+  if (!bsp.initialize_sdcard(Bsp::SdCardConfig{.format_if_mount_failed = false,
+                                               .max_files = 16,
+                                               .allocation_unit_size = 16 * 1024})) {
+    return false;
+  }
+  sdcard_ = bsp.sdcard();
+  // A read into a buffer that is not cache-line aligned (most of the games'
+  // own) goes through a bounce buffer, which the driver otherwise mallocs
+  // from DMA-capable internal RAM on every call, one sector at a time. That
+  // RAM is the scarcest there is with the USB device up (a failed bounce
+  // allocation is a failed read), and the P4's SDMMC can DMA to PSRAM: give
+  // it a permanent PSRAM one, used 16 KB per command.
+  if (sdcard_) {
+    constexpr size_t bounce_bytes = 16 * 1024;
+    void *bounce = heap_caps_calloc(1, bounce_bytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA | MALLOC_CAP_CACHE_ALIGNED);
+    // the driver sizes its transfers (and cache syncs) by the allocated size,
+    // which has to be whole cache lines too
+    size_t line = 0;
+    esp_cache_get_alignment(MALLOC_CAP_SPIRAM, &line);
+    if (bounce && line && (heap_caps_get_allocated_size(bounce) % line || (uintptr_t)bounce % line)) {
+      logger_.warn("The SD card's bounce buffer at {} ({} B) is not cache-line aligned", bounce,
+                   heap_caps_get_allocated_size(bounce));
+      heap_caps_free(bounce);
+      bounce = nullptr;
+    }
+    if (bounce) {
+      sdcard_->host.dma_aligned_buffer = bounce;
+      sdcard_->host.unaligned_multi_block_rw_max_chunk_size = bounce_bytes / 512;
+      logger_.info("SD card: {} KB bounce buffer in PSRAM", bounce_bytes / 1024);
+    } else {
+      logger_.warn("No PSRAM for the SD card's {} byte bounce buffer", bounce_bytes);
+    }
+  }
+  uint32_t size_mb = 0, free_mb = 0;
+  if (bsp.get_sd_card_info(&size_mb, &free_mb)) {
+    logger_.info("SD card: {} MB total, {} MB free", size_mb, free_mb);
+  }
+  return sdcard_ != nullptr;
+}
+
+sdmmc_card_t *Tab5Emu::sdcard() const { return sdcard_; }
+
+/////////////////////////////////////////////////////////////////////////////
+// Memory
+/////////////////////////////////////////////////////////////////////////////
+
+// the ROM the cart copied in, for nofrendo (shared with esp-box-emu)
+extern "C" uint8_t *osd_getromdata() { return Tab5Emu::get().romdata(); }
+
+size_t Tab5Emu::copy_file_to_romdata(const std::string &filename) {
+  FILE *file = fopen(filename.c_str(), "rb");
+  if (!file) return 0;
+  long length = -1;
+  if (fseek(file, 0, SEEK_END) == 0) length = ftell(file);
+  if (length <= 0 || fseek(file, 0, SEEK_SET) != 0) { fclose(file); return 0; }
+  const size_t size = static_cast<size_t>(length);
+  if (!reserve_romdata(size)) { fclose(file); return 0; }
+  const bool read = fread(romdata_, 1, size, file) == size && !ferror(file) &&
+                    fgetc(file) == EOF && !ferror(file);
+  const bool closed = fclose(file) == 0;
+  if (!read || !closed) { free_romdata(); return 0; }
+  return size;
+}
+
+bool Tab5Emu::reserve_romdata(size_t bytes) {
+  free_romdata();
+  romdata_ = static_cast<uint8_t *>(heap_caps_calloc(1, bytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+  if (!romdata_ && rom_arena_ && bytes <= ROM_ARENA_BYTES) {
+    logger_.warn("No contiguous PSRAM block of {} bytes; using the ROM arena", bytes);
+    romdata_ = rom_arena_;
+    romdata_in_arena_ = true;
+    memset(romdata_, 0, bytes);
+  }
+  if (!romdata_) {
+    logger_.error("Could not allocate a {} byte block", bytes);
+    return false;
+  }
+  romdata_size_ = bytes;
+  return true;
+}
+
+void Tab5Emu::free_romdata() {
+  if (romdata_ && romdata_in_arena_) {
+    romdata_in_arena_ = false;
+    romdata_ = nullptr;
+    romdata_size_ = 0;
+    return;
+  }
+  if (romdata_) {
+    heap_caps_free(romdata_);
+    romdata_ = nullptr;
+    romdata_size_ = 0;
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Audio
+/////////////////////////////////////////////////////////////////////////////
+
+bool Tab5Emu::initialize_audio() {
+  auto &bsp = Bsp::get();
+  // playback only, at the DAC's fixed rate (play_audio() resamples): no
+  // microphones, so no RX DMA ring or recording task in internal RAM
+  auto config = Bsp::default_audio_config();
+  config.sample_rate = 48000;
+  config.recording_enabled = false;
+  if (!bsp.initialize_audio(config)) {
+    return false;
+  }
+  bsp.mute(false);
+  bsp.volume(60.0f);
+  return true;
+}
+
+void Tab5Emu::audio_sample_rate(uint32_t rate, bool log) {
+  std::lock_guard<std::mutex> lock(audio_submit_mutex_);
+  if (rate == 0) {
+    return;
+  }
+  if (rate != audio_source_rate_ && log) {
+    logger_.info("audio source rate {} Hz (DAC {} Hz{})", rate, audio_hardware_rate(),
+                 rate == audio_hardware_rate() ? "" : ", resampling");
+  }
+  // a small trim keeps the resampler's phase (no click); a new source resets it
+  const bool big_change = audio_source_rate_ == 0 || rate > audio_source_rate_ + audio_source_rate_ / 4 ||
+                          rate + audio_source_rate_ / 4 < audio_source_rate_;
+  audio_source_rate_ = rate;
+  if (big_change) {
+    audio_phase_ = 0;
+    audio_last_[0] = audio_last_[1] = 0;
+  }
+}
+
+// Queue 16-bit stereo PCM at audio_sample_rate(): resampled to the DAC rate
+// when they differ, and paced (short waits for queue space) so a producer
+// that runs slightly ahead of the DAC is held back instead of dropping
+// audio. Returns the number of *source* bytes consumed.
+size_t Tab5Emu::play_audio(const uint8_t *data, size_t size) {
+  std::lock_guard<std::mutex> lock(audio_submit_mutex_);
+  if (!data || size < 4 || size % 4 != 0) return 0;
+  tab5::audio_probe::expected(true);
+  auto &bsp = Bsp::get();
+  const int64_t call_us=esp_timer_get_time();
+  if(audio_last_call_us_){const uint64_t gap=call_us-audio_last_call_us_;if(gap>audio_max_gap_us_)audio_max_gap_us_=gap;}
+  audio_last_call_us_=call_us;
+  audio_source_frames_total_+=size/4;
+  const uint32_t hw = audio_hardware_rate();
+  const uint8_t *out = data;
+  size_t out_size = size;
+  if (audio_source_rate_ != hw && hw != 0) {
+    // linear resampler, 16.16 phase carried across calls
+    const size_t in_frames = size / 4;
+    const auto *in = reinterpret_cast<const int16_t *>(data);
+    const uint32_t step = static_cast<uint32_t>((static_cast<uint64_t>(audio_source_rate_) << 16) / hw);
+    const size_t max_out = (static_cast<uint64_t>(in_frames + 1) << 16) / step + 2;
+    audio_resample_buf_.resize(max_out * 4);
+    auto *o = reinterpret_cast<int16_t *>(audio_resample_buf_.data());
+    size_t n = 0;
+    uint32_t pos = audio_phase_; // position relative to audio_last_ (frame -1) at 0x10000 = in[0]
+    // source frames: index -1 = audio_last_, 0..in_frames-1 = in
+    auto src = [&](int idx, int ch) -> int32_t { return idx < 0 ? audio_last_[ch] : in[2 * idx + ch]; };
+    while (true) {
+      const int idx = static_cast<int>(pos >> 16) - 1; // frame a
+      if (idx + 1 >= static_cast<int>(in_frames)) {
+        break;
+      }
+      const int32_t frac = pos & 0xFFFF;
+      for (int ch = 0; ch < 2; ch++) {
+        const int32_t a = src(idx, ch), b = src(idx + 1, ch);
+        o[2 * n + ch] = static_cast<int16_t>((a * (0x10000 - frac) + b * frac) >> 16);
+      }
+      n++;
+      pos += step;
+    }
+    if (in_frames) {
+      audio_last_[0] = in[2 * (in_frames - 1)];
+      audio_last_[1] = in[2 * (in_frames - 1) + 1];
+    }
+    // keep the phase relative to the new "last" frame
+    audio_phase_ = pos - (static_cast<uint32_t>(in_frames) << 16);
+    out = audio_resample_buf_.data();
+    out_size = n * 4;
+  }
+  // paced send
+  size_t sent = 0;
+  const auto t0 = esp_timer_get_time();
+  while (sent < out_size) {
+    sent += bsp.play_audio(out + sent, out_size - sent);
+    if (sent >= out_size) {
+      break;
+    }
+    if (audio_max_wait_ms_ == 0 || (esp_timer_get_time() - t0) / 1000 >= audio_max_wait_ms_) {
+      break;
+    }
+    audio_waits_++;
+    vTaskDelay(1);
+  }
+  audio_output_frames_total_+=sent/4;
+  audio_dropped_total_+=out_size-sent;
+  audio_bytes_sent_ += sent;
+  audio_bytes_dropped_ += out_size - sent;
+  const auto now = esp_timer_get_time();
+  if (now - audio_last_report_us_ > 30'000'000) {
+    // (debug only: this runs on the game's audio task, whose stack can be
+    // small -- Doom's is 2 KB -- and formatting the line overflowed it)
+    if (audio_last_report_us_ != 0) {
+      logger_.debug("audio: sent {} KB, dropped {} B, waited {} times ({} -> {} Hz)", audio_bytes_sent_ / 1024,
+                   audio_bytes_dropped_, audio_waits_, audio_source_rate_.load(), hw);
+    }
+    audio_bytes_sent_ = audio_bytes_dropped_ = audio_waits_ = 0;
+    audio_last_report_us_ = now;
+  }
+  // report source bytes consumed: everything when nothing was dropped
+  return sent >= out_size ? size : (size * sent) / std::max<size_t>(1, out_size);
+}
+
+Tab5Emu::AudioStats Tab5Emu::audio_stats() const {
+ return {audio_source_frames_total_.load(),audio_output_frames_total_.load(),audio_dropped_total_.load(),audio_max_gap_us_.load(),audio_clock_ticks_.load(),audio_sample_rate(),audio_hardware_rate(),audio_clock_hz_.load()};
+}
+
+void Tab5Emu::discard_audio() {
+  std::lock_guard<std::mutex> lock(audio_submit_mutex_);
+  Bsp::get().clear_audio();
+  ++audio_generation_;
+  audio_phase_ = 0;
+  audio_last_[0] = audio_last_[1] = 0;
+  audio_last_call_us_ = 0;
+}
+
+void Tab5Emu::mute(bool v) {
+  Bsp::get().mute(v);
+  espp::EventManager::get().publish(volume_changed_topic, {});
+}
+
+void Tab5Emu::volume(float volume) {
+  Bsp::get().volume(volume);
+  espp::EventManager::get().publish(volume_changed_topic, {});
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Battery
+/////////////////////////////////////////////////////////////////////////////
+
+bool Tab5Emu::initialize_battery() {
+  auto &bsp = Bsp::get();
+  if (!bsp.initialize_battery_monitoring()) {
+    return false;
+  }
+  bsp.set_charging_enabled(true);
+  // Initializing the INA226 does not read it. Poll in a low-priority task,
+  // away from LVGL/audio, then publish an owned snapshot for diagnostics/UI.
+  return xTaskCreate([](void *ctx) {
+    auto &self=*static_cast<Tab5Emu *>(ctx);
+    for (;;) {
+      const auto reading=Bsp::get().read_battery_status();
+      {
+        std::lock_guard<std::mutex> lock(self.battery_cache_mutex_);
+        self.battery_cache_=reading;
+      }
+      espp::EventManager::get().publish(battery_topic,{});
+      vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+  },"battery-poll",4096,this,2,nullptr)==pdPASS;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Input
+/////////////////////////////////////////////////////////////////////////////
+
+bool Tab5Emu::initialize_input() {
+  // Touch is initialized with the board (USB HID is separate, see
+  // usb_hid.cpp). The BSP's touchpad driver also registers a "home button"
+  // input device that the Tab5 has no button for; LVGL 9 warns on every
+  // read of a button device without a point table, so give it one.
+  static const lv_point_t no_button_points[] = {{0, 0}};
+  for (lv_indev_t *indev = lv_indev_get_next(nullptr); indev; indev = lv_indev_get_next(indev)) {
+    if (lv_indev_get_type(indev) == LV_INDEV_TYPE_BUTTON) {
+      lv_indev_set_button_points(indev, no_button_points);
+    }
+  }
+  // gamepad / keyboard navigation of the LVGL menus
+  keypad_indev_ = lv_indev_create();
+  if (keypad_indev_) {
+    lv_indev_set_type(keypad_indev_, LV_INDEV_TYPE_KEYPAD);
+    lv_indev_set_read_cb(keypad_indev_, &Tab5Emu::keypad_read);
+    lv_indev_set_user_data(keypad_indev_, this);
+  }
+  // the USB link's test control's finger (emulink tap / touch / drag)
+  remote_pointer_indev_ = lv_indev_create();
+  if (remote_pointer_indev_) {
+    lv_indev_set_type(remote_pointer_indev_, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(remote_pointer_indev_, &Tab5Emu::remote_pointer_read);
+    lv_indev_set_user_data(remote_pointer_indev_, this);
+  }
+  return true;
+}
+
+void Tab5Emu::wait_menu_input_release() {
+  menu_release_pending_=true;press_latch_=0;
+  std::lock_guard<std::recursive_mutex> lock(lvgl_mutex());
+  for(auto *input=lv_indev_get_next(nullptr);input;input=lv_indev_get_next(input))
+    lv_indev_wait_release(input);
+}
+
+void Tab5Emu::keypad_read(lv_indev_t *indev, lv_indev_data_t *data) {
+  auto *self = static_cast<Tab5Emu *>(lv_indev_get_user_data(indev));
+  if (self->menu_release_pending_) {
+    bool held=self->remote_buttons_.load()!=0 || self->touch_held_.load();
+    {
+      std::lock_guard<std::mutex> lk(self->hid_mutex_);
+      held=held || self->usb_gamepad_.buttons;
+      for(unsigned i=0;i<32;++i)held=held || self->keyboard_.keys[i] || self->i2c_keyboard_.keys[i];
+    }
+    if (held) { data->key=self->keypad_last_key_;data->state=LV_INDEV_STATE_RELEASED;return; }
+    self->menu_release_pending_=false;
+  }
+  GamepadState st{};
+  if (self->usb_gamepad_present()) {
+    std::lock_guard<std::mutex> lk(self->hid_mutex_);
+    st.buttons = self->usb_gamepad_.buttons;
+  }
+  // the USB link's test control (emulink press)
+  st.buttons |= self->remote_buttons_.load(std::memory_order_relaxed);
+  if (self->keyboard_present() && !self->keyboard_test_mode()) {
+    const auto kb = self->action_keyboard_state();
+    auto key = [&](int usage) { return (kb.keys[usage >> 3] >> (usage & 7)) & 1; };
+    st.up |= key(82) | key(8);
+    st.down |= key(81) | key(22);
+    st.left |= key(80) | key(4);
+    st.right |= key(79) | key(7);
+    st.a |= key(40) | key(88) | key(44) | key(18) | key(23); // enter, keypad enter, space
+    st.b |= key(41) | key(14);                     // escape
+    st.x |= key(9) | key(12);                      // f: the launcher's console filter
+  }
+  // left / right adjust a focused slider or dropdown, otherwise move focus
+  bool horizontal_widget = false, all_keys = false;
+  if (auto *group = lv_indev_get_group(indev)) {
+    if (auto *focused = lv_group_get_focused(group)) {
+      // (an object flagged LV_OBJ_FLAG_USER_1 takes every arrow as a key,
+      // not a focus move: emu-ui's game list, rows and console picker)
+      all_keys = lv_obj_has_flag(focused, LV_OBJ_FLAG_USER_1);
+      horizontal_widget = all_keys || lv_obj_check_type(focused, &lv_slider_class) ||
+                          lv_obj_check_type(focused, &lv_dropdown_class) || lv_obj_check_type(focused, &lv_switch_class);
+    }
+  }
+  uint32_t key = 0;
+  if (st.a) key = LV_KEY_ENTER;
+  else if (st.b) key = LV_KEY_ESC;
+  else if (st.x) key = LV_KEY_HOME; // (the launcher's console picker)
+  else if (st.up) key = all_keys ? LV_KEY_UP : LV_KEY_PREV;
+  else if (st.down) key = all_keys ? LV_KEY_DOWN : LV_KEY_NEXT;
+  else if (st.left) key = horizontal_widget ? LV_KEY_LEFT : LV_KEY_PREV;
+  else if (st.right) key = horizontal_widget ? LV_KEY_RIGHT : LV_KEY_NEXT;
+  if (key) {
+    if (key != self->keypad_last_key_) {
+      auto *group = lv_indev_get_group(indev);
+      self->logger_.debug("keypad: key {} group {} focused {}", key, fmt::ptr(group),
+                          fmt::ptr(group ? lv_group_get_focused(group) : nullptr));
+    }
+    self->keypad_last_key_ = key;
+    data->key = key;
+    data->state = LV_INDEV_STATE_PRESSED;
+  } else {
+    data->key = self->keypad_last_key_;
+    data->state = LV_INDEV_STATE_RELEASED;
+  }
+}
+
+void Tab5Emu::on_touch(const TouchpadData &raw) {
+  // convert from the raw (portrait, native) coordinates into the rotated
+  // (landscape) coordinates used by LVGL and the games. The callback hands
+  // over the primary finger; the BSP has every finger of the same update, and
+  // the virtual gamepad wants all of them (d-pad and a face button at once).
+  auto &bsp = Bsp::get();
+  auto data = bsp.touchpad_convert(raw);
+  const auto fingers = bsp.touch_state_convert(bsp.touch_state());
+  std::lock_guard<std::mutex> lk(touch_gamepad_.mutex);
+  auto &t = touch_gamepad_;
+  if(data.num_touch_points || t.num_points)input_activity();
+  t.screen = data;
+  t.num_points = 0;
+  if (fingers.num_touch_points > 0) {
+    for (size_t i = 0; i < fingers.num_touch_points && i < fingers.points.size() && t.num_points < t.kMaxPoints; i++) {
+      t.points[t.num_points++] = {fingers.points[i].x, fingers.points[i].y};
+    }
+  } else if (data.num_touch_points > 0) {
+    t.points[t.num_points++] = {data.x, data.y}; // a driver that only reports the primary point
+  }
+  update_touch_locked();
+}
+
+bool Tab5Emu::touch_zone(int x, int y, GamepadState &state, bool &menu) const {
+  if(screen_sleeping_)return false;
+  if(touch_controls()) return tab5::touch::hit(x,y,touch_profile_.load(),state,menu);
+  // Menus receive touch through LVGL; no invisible in-game hit regions.
+  return false;
+}
+
+void Tab5Emu::update_touch_locked() {
+  // Each finger presses whatever its zone says; the presses are OR'd, so a
+  // thumb on the d-pad and one on A both count. The link's test control's
+  // finger is one more.
+  auto &t = touch_gamepad_;
+  t.last = t.screen;
+  if (t.remote.fingers > 0) {
+    t.last.num_touch_points = t.remote.fingers;
+    t.last.x = t.remote.x;
+    t.last.y = t.remote.y;
+  }
+  GamepadState state{};
+  bool menu = false;
+  for (size_t i = 0; i < t.num_points; i++) {
+    touch_zone(t.points[i].first, t.points[i].second, state, menu);
+  }
+  if (t.remote.fingers > 0) {
+    touch_zone(t.remote.x, t.remote.y, state, menu);
+  }
+  if (!t.num_points && !t.remote.fingers) t.menu_down=false;
+  if (menu && !t.menu_down && !screen_sleeping_ && !wake_block_) {
+    t.menu_down=true;
+    menu_requested_ = true;
+  }
+  if (!screen_sleeping_ && !wake_block_)
+    press_latch_.fetch_or(static_cast<uint16_t>(state.buttons & ~t.state.buttons), std::memory_order_relaxed);
+  t.state = state;
+  touch_held_=t.num_points>0 || t.remote.fingers>0;
+}
+
+void Tab5Emu::set_remote_touch(uint8_t fingers, uint16_t x, uint16_t y) {
+  input_activity();
+  std::lock_guard<std::mutex> lk(touch_gamepad_.mutex);
+  touch_gamepad_.remote = {fingers, std::min<int>(x, lcd_width() - 1), std::min<int>(y, lcd_height() - 1)};
+  update_touch_locked();
+}
+
+Tab5Emu::TouchPoint Tab5Emu::touch_pointer(bool skip_gamepad) const {
+  std::lock_guard<std::mutex> lk(touch_gamepad_.mutex);
+  const auto &t = touch_gamepad_;
+  auto off_pad = [&](int x, int y) {
+    GamepadState unused{};
+    bool menu = false;
+    return !skip_gamepad || !touch_zone(x, y, unused, menu);
+  };
+  if (t.remote.fingers > 0 && off_pad(t.remote.x, t.remote.y)) {
+    return t.remote;
+  }
+  for (size_t i = 0; i < t.num_points; i++) {
+    if (off_pad(t.points[i].first, t.points[i].second)) {
+      return {static_cast<uint8_t>(t.num_points), t.points[i].first, t.points[i].second};
+    }
+  }
+  return {};
+}
+
+std::pair<int, int> Tab5Emu::screen_to_frame(int x, int y, int width, int height) const {
+  const int dw = std::max<int>(1, display_width_), dh = std::max<int>(1, display_height_);
+  const int ox = (static_cast<int>(lcd_width()) - dw) / 2, oy = (static_cast<int>(lcd_height()) - dh) / 2;
+  return {std::clamp((x - ox) * width / dw, 0, width - 1), std::clamp((y - oy) * height / dh, 0, height - 1)};
+}
+
+std::pair<int, int> Tab5Emu::frame_to_screen(int x, int y, int width, int height) const {
+  const int dw = std::max<int>(1, display_width_), dh = std::max<int>(1, display_height_);
+  const int ox = (static_cast<int>(lcd_width()) - dw) / 2, oy = (static_cast<int>(lcd_height()) - dh) / 2;
+  width = std::max(1, width);
+  height = std::max(1, height);
+  return {ox + (2 * x + 1) * dw / (2 * width), oy + (2 * y + 1) * dh / (2 * height)};
+}
+
+void Tab5Emu::remote_pointer_read(lv_indev_t *indev, lv_indev_data_t *data) {
+  // the link's test control's finger, for the LVGL menus (the touch screen
+  // has its own input device, from the BSP)
+  auto *self = static_cast<Tab5Emu *>(lv_indev_get_user_data(indev));
+  std::lock_guard<std::mutex> lk(self->touch_gamepad_.mutex);
+  const auto &r = self->touch_gamepad_.remote;
+  if (r.fingers > 0) {
+    // LVGL rotates what a pointer reads (the BSP's touch is the panel's
+    // portrait coordinates): hand it the landscape point rotated back
+    // (w x h: the rotated, landscape, resolution)
+    auto *disp = lv_indev_get_display(indev);
+    const int32_t w = lv_display_get_horizontal_resolution(disp);
+    const int32_t h = lv_display_get_vertical_resolution(disp);
+    switch (lv_display_get_rotation(disp)) {
+    case LV_DISPLAY_ROTATION_90:
+      data->point.x = r.y;
+      data->point.y = w - 1 - r.x;
+      break;
+    case LV_DISPLAY_ROTATION_180:
+      data->point.x = w - 1 - r.x;
+      data->point.y = h - 1 - r.y;
+      break;
+    case LV_DISPLAY_ROTATION_270:
+      data->point.x = h - 1 - r.y;
+      data->point.y = r.x;
+      break;
+    default:
+      data->point.x = r.x;
+      data->point.y = r.y;
+      break;
+    }
+    data->state = LV_INDEV_STATE_PRESSED;
+  } else {
+    data->state = LV_INDEV_STATE_RELEASED;
+  }
+}
+
+GamepadState Tab5Emu::gamepad_state() {
+  GamepadState state;
+  {
+    std::lock_guard<std::mutex> lk(touch_gamepad_.mutex);
+    state = touch_gamepad_.state;
+  }
+  if (keyboard_present() && !keyboard_test_mode()) {
+    state.buttons |= keyboard_gamepad_state().buttons;
+  }
+  if (usb_gamepad_present()) {
+    std::lock_guard<std::mutex> lk(hid_mutex_);
+    state.buttons |= usb_gamepad_.buttons;
+  }
+  // buttons held by the USB link's test control (scripted input)
+  state.buttons |= remote_buttons_.load(std::memory_order_relaxed);
+  if (state.buttons)
+    input_activity();
+  if (screen_sleeping_)
+    return {};
+  if (wake_block_) {
+    bool held = touch_held_ || remote_buttons_.load() != 0;
+    {
+      std::lock_guard<std::mutex> lk(hid_mutex_);
+      held = held || usb_gamepad_.buttons;
+      for (unsigned i = 0; i < 32; ++i)
+        held = held || keyboard_.keys[i] || i2c_keyboard_.keys[i];
+    }
+    if (!held)
+      wake_block_ = false;
+    return {};
+  }
+  return state;
+}
+
+void Tab5Emu::set_remote_buttons(uint16_t buttons) {
+  input_activity();
+  const uint16_t old = remote_buttons_.exchange(buttons, std::memory_order_relaxed);
+  if (!screen_sleeping_ && !wake_block_)
+    press_latch_.fetch_or(static_cast<uint16_t>(buttons & ~old), std::memory_order_relaxed);
+}
+
+GamepadState Tab5Emu::gamepad_state_latched() {
+  const bool waking = screen_sleeping_ || wake_block_;
+  GamepadState state = gamepad_state();
+  if (waking) { press_latch_=0; return {}; }
+  state.buttons |= press_latch_.exchange(0, std::memory_order_relaxed);
+  if (state.up && state.down) state.up = state.down = 0;
+  if (state.left && state.right) state.left = state.right = 0;
+  return state;
+}
+
+GamepadState Tab5Emu::touch_gamepad_state() const {
+  std::lock_guard<std::mutex> lk(touch_gamepad_.mutex);
+  return touch_gamepad_.state;
+}
+
+GamepadState Tab5Emu::usb_gamepad_state() const {
+  std::lock_guard<std::mutex> lk(hid_mutex_);
+  return usb_gamepad_;
+}
+
+GamepadAxes Tab5Emu::gamepad_axes() const {
+  std::lock_guard<std::mutex> lk(hid_mutex_);
+  return usb_gamepad_axes_;
+}
+
+void Tab5Emu::on_hid_gamepad_state(const GamepadState &state, bool menu, const GamepadAxes &axes) {
+  if(state.buttons || axes.lx || axes.ly || axes.rx || axes.ry)input_activity();
+  bool menu_edge=false;
+  {
+    std::lock_guard<std::mutex> lk(hid_mutex_);
+    menu_edge=menu && !usb_home_down_;usb_home_down_=menu;
+    if (!screen_sleeping_ && !wake_block_)
+      press_latch_.fetch_or(static_cast<uint16_t>(state.buttons & ~usb_gamepad_.buttons),
+                          std::memory_order_relaxed);
+    usb_gamepad_ = state;
+    usb_gamepad_axes_ = axes;
+  }
+  if (menu_edge && !screen_sleeping_ && !wake_block_) {
+    menu_requested_ = true;
+  }
+}
+
+uint8_t *Tab5Emu::frame_buffer0() {
+  if (!frame_buffers_[0]) {
+    frame_buffers_[0] = static_cast<uint8_t *>(
+        heap_caps_aligned_calloc(64, 1, FRAME_BUFFER_PIXELS * sizeof(uint16_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+  }
+  return frame_buffers_[0];
+}
+
+uint8_t *Tab5Emu::frame_buffer1() {
+  if (!frame_buffers_[1]) {
+    frame_buffers_[1] = static_cast<uint8_t *>(
+        heap_caps_aligned_calloc(64, 1, FRAME_BUFFER_PIXELS * sizeof(uint16_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+  }
+  return frame_buffers_[1];
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Video
+/////////////////////////////////////////////////////////////////////////////
+
+void *Tab5Emu::dpi_frame_buffer() {
+  if (dpi_fb_) {
+    return dpi_fb_;
+  }
+  // the panel's frame buffer (the one it scans out: the BSP keeps a single
+  // buffer, CONFIG_M5STACK_TAB5_DPI_NUM_FBS = 1), so the PPA can scale and
+  // rotate game frames straight into it
+  const auto fbs = Bsp::get().frame_buffers();
+  if (fbs.empty() || !fbs[0]) {
+    logger_.error("No DPI panel frame buffer; was initialize_tab5() called?");
+    return nullptr;
+  }
+  void *fb0 = fbs[0];
+  dpi_fb_ = fb0;
+  dpi_fb_bytes_ = Bsp::frame_buffer_size();
+  logger_.info("DPI frame buffer at {} ({} bytes)", fb0, dpi_fb_bytes_);
+  return dpi_fb_;
+}
+
+bool Tab5Emu::initialize_video() {
+  if (video_task_) {
+    return true;
+  }
+  if (!dpi_frame_buffer()) {
+    return false;
+  }
+  ppa_client_config_t ppa_cfg = {};
+  ppa_cfg.oper_type = PPA_OPERATION_SRM;
+  ppa_cfg.max_pending_trans_num = 1;
+  if (auto err = ppa_register_client(&ppa_cfg, &ppa_client_); err != ESP_OK) {
+    logger_.error("Could not register a PPA client: {}", esp_err_to_name(err));
+    return false;
+  }
+  // the conversion tile (internal RAM), normally already allocated at the top
+  // of initialize_tab5(), before the BSP and the GUI fragment the internal
+  // heap, and kept for the life of the app: every cart needs it and the
+  // cores' own hot data lives in PSRAM
+  if (!ensure_tile_buffer()) {
+    return false;
+  }
+  // likewise the big contiguous ROM arena (see rom_arena()) and, right after
+  // it, the small-object slab (see small_object_slab())
+#if !defined(ENABLE_N64) || defined(ENABLE_GBA)
+  reserve_rom_arena();
+#endif
+#if defined(ENABLE_JK)
+  small_object_slab_ =
+      static_cast<uint8_t *>(heap_caps_malloc(SMALL_OBJECT_SLAB_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+  logger_.info("PSRAM reservations: ROM arena at {} ({} KB), small-object slab at {} ({} KB)",
+               fmt::ptr(rom_arena_), ROM_ARENA_BYTES / 1024, fmt::ptr(small_object_slab_),
+               SMALL_OBJECT_SLAB_BYTES / 1024);
+#endif
+  // and the audio resampler's output buffer: sized once here instead of
+  // growing during the first game (where it lands in the arena's hole)
+  audio_resample_buf_.reserve(64 * 1024);
+  video_queue_ = xQueueCreate(1, sizeof(VideoFrame));
+  frame_done_ = xSemaphoreCreateBinary();
+  using namespace std::placeholders;
+  video_task_ = espp::Task::make_unique({
+      .callback = std::bind(&Tab5Emu::video_task_callback, this, _1, _2, _3),
+      .task_config = {.name = "video", .stack_size_bytes = 6 * 1024, .priority = 20, .core_id = 1},
+  });
+  video_task_->start();
+  return true;
+}
+
+bool Tab5Emu::reserve_rom_arena() {
+  if (rom_arena_) {
+    return true;
+  }
+  rom_arena_ = static_cast<uint8_t *>(heap_caps_malloc(ROM_ARENA_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+  if (!rom_arena_) {
+    logger_.warn("Could not reserve the {} byte ROM arena (psram free {}, largest {})", ROM_ARENA_BYTES,
+                 heap_caps_get_free_size(MALLOC_CAP_SPIRAM), heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM));
+    return false;
+  }
+  logger_.debug("ROM arena at {}", fmt::ptr(rom_arena_));
+  return true;
+}
+
+void Tab5Emu::release_rom_arena() {
+  if (rom_arena_) {
+    heap_caps_free(rom_arena_);
+    rom_arena_ = nullptr;
+  }
+}
+
+void Tab5Emu::display_size(size_t width, size_t height) {
+  display_width_ = std::min(width, game_view_width());
+  display_height_ = std::min(height, lcd_height());
+  logger_.info("display size: {}x{}", display_width_, display_height_);
+  clear_screen();
+}
+
+void Tab5Emu::native_size(size_t width, size_t height, int pitch) {
+  drain_video();
+  native_width_ = width;
+  native_height_ = height;
+  native_pitch_ = pitch > 0 ? pitch : width;
+  rotation_ = lv_display_get_rotation(lv_display_get_default());
+  logger_.info("native size: {}x{} (pitch {})", native_width_, native_height_, native_pitch_);
+}
+
+void Tab5Emu::overlay_size(size_t width, size_t height, int pitch) {
+  overlay_width_ = width;
+  overlay_height_ = height;
+  overlay_pitch_ = pitch > 0 ? static_cast<size_t>(pitch) : width;
+  logger_.info("overlay size: {}x{} (pitch {})", overlay_width_, overlay_height_, overlay_pitch_);
+}
+
+IRAM_ATTR size_t Tab5Emu::staging_scale() const {
+  // overlays are only supported on paletted frames
+  if (!has_palette() || overlay_width_ == 0 || overlay_height_ == 0 || native_height_ == 0) {
+    return 1;
+  }
+  return std::max<size_t>(1, (overlay_height_ + native_height_ - 1) / native_height_);
+}
+
+void Tab5Emu::palette(const uint16_t *palette, size_t size) {
+  palette_ = palette;
+  palette_size_ = size;
+}
+
+void Tab5Emu::release_video_buffers() {
+  wait_frame();
+  // nothing is queued now (wait_frame returned), the video task is idle;
+  // the tile buffer stays (see initialize_video)
+  for (auto &fb : frame_buffers_) {
+    if (fb) {
+      heap_caps_free(fb);
+      fb = nullptr;
+    }
+  }
+  native_width_ = native_height_ = native_pitch_ = 0;
+  overlay_width_ = overlay_height_ = overlay_pitch_ = 0;
+  palette_ = nullptr;
+}
+
+void Tab5Emu::clear_screen() {
+  std::lock_guard<std::recursive_mutex> lk(video_frame_mutex_);
+  touch_controls_dirty_=true;
+  auto fb = dpi_frame_buffer();
+  if (!fb) {
+    return;
+  }
+  memset(fb, 0, dpi_fb_bytes_);
+  esp_cache_msync(fb, dpi_fb_bytes_, ESP_CACHE_MSYNC_FLAG_DIR_C2M);
+}
+
+IRAM_ATTR void Tab5Emu::push_frame(const void *frame, const void *overlay, size_t overlay_row_begin,
+                         size_t overlay_row_end) {
+  if (!video_queue_) {
+    return;
+  }
+  // overwrite: if the video task hasn't consumed the previous frame yet, the
+  // game is running faster than the display and we drop the older one
+  VideoFrame vf{frame, overlay, overlay_row_begin, overlay_row_end};
+  std::lock_guard<std::mutex> lock(video_queue_mutex_);
+  VideoFrame previous{};
+  if (xQueuePeek(video_queue_,&previous,0)==pdTRUE) {
+    video_leases_.release(previous.frame);
+    frames_dropped_.fetch_add(1, std::memory_order_relaxed);
+  }
+  if(!video_leases_.retain(frame))return;
+  xQueueOverwrite(video_queue_, &vf);
+}
+
+bool Tab5Emu::video_frame_available(const void *frame) {
+  std::lock_guard<std::mutex> lock(video_queue_mutex_);
+  return video_leases_.available(frame);
+}
+void Tab5Emu::release_video_frame(const void *frame) {
+  std::lock_guard<std::mutex> lock(video_queue_mutex_);
+  video_leases_.release(frame);
+}
+void Tab5Emu::drain_video() {
+  if(!video_queue_)return;
+  for(;;){
+    {
+      std::lock_guard<std::mutex> lock(video_queue_mutex_);
+      VideoFrame pending{};
+      if(xQueueReceive(video_queue_,&pending,0)==pdTRUE)video_leases_.release(pending.frame);
+      if(video_leases_.idle())return;
+    }
+    vTaskDelay(1);
+  }
+}
+
+IRAM_ATTR bool Tab5Emu::frame_slot_free() const {
+  return video_queue_ == nullptr || uxQueueMessagesWaiting(video_queue_) == 0;
+}
+
+Tab5Emu::VideoStats Tab5Emu::video_stats(bool reset) {
+  auto stats = video_stats_;
+  if (reset) {
+    video_stats_ = {};
+  }
+  return stats;
+}
+
+IRAM_ATTR void Tab5Emu::wait_frame() {
+  if (frame_done_) {
+    xSemaphoreTake(frame_done_, pdMS_TO_TICKS(100));
+  }
+}
+
+bool Tab5Emu::ensure_tile_buffer() {
+  if (tile_buf_) {
+    return true;
+  }
+  // 128-byte aligned so the PPA's cache sync covers exactly this buffer;
+  // internal memory so the conversion writes and the PPA reads are fast
+  tile_buf_ = static_cast<uint16_t *>(heap_caps_aligned_alloc(128, TILE_BYTES, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
+  if (!tile_buf_) {
+    logger_.warn("No internal RAM for the {} byte video tile; using PSRAM", TILE_BYTES);
+    tile_buf_ = static_cast<uint16_t *>(heap_caps_aligned_alloc(128, TILE_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+  }
+  if (!tile_buf_) {
+    logger_.error("Could not allocate {} bytes for the video tile", TILE_BYTES);
+    return false;
+  }
+  tile_buf_bytes_ = TILE_BYTES;
+  return true;
+}
+
+IRAM_ATTR Tab5Emu::Layout Tab5Emu::layout() const {
+  Layout lo{};
+  // the LVGL rotation the GUI configured; the BSP's flush uses the identical
+  // LVGL->PPA mapping, so the game frames come out the same way up as the GUI
+  // (read when the game set its frame size: not LVGL code every frame)
+  const auto rotation = static_cast<lv_display_rotation_t>(rotation_);
+  lo.angle = PPA_SRM_ROTATION_ANGLE_0;
+  lo.swap = false;
+  switch (rotation) {
+  case LV_DISPLAY_ROTATION_90:
+    lo.angle = PPA_SRM_ROTATION_ANGLE_90;
+    lo.swap = true;
+    break;
+  case LV_DISPLAY_ROTATION_180:
+    lo.angle = PPA_SRM_ROTATION_ANGLE_180;
+    break;
+  case LV_DISPLAY_ROTATION_270:
+    lo.angle = PPA_SRM_ROTATION_ANGLE_270;
+    lo.swap = true;
+    break;
+  default:
+    break;
+  }
+  // panel (native) picture size
+  const uint32_t pic_w = Bsp::display_width();  // 720
+  const uint32_t pic_h = Bsp::display_height(); // 1280
+  const uint32_t in_w = staging_width();
+  const uint32_t in_h = staging_height();
+  // the PPA scales in 1/16 steps; use the ratio it will actually apply so the
+  // tiles line up exactly
+  auto quantize = [](float s) { return std::floor(s * 16.0f) / 16.0f; };
+  lo.scale_x = quantize(static_cast<float>(display_width_) / static_cast<float>(in_w));
+  lo.scale_y = quantize(static_cast<float>(display_height_) / static_cast<float>(in_h));
+  lo.out_w = static_cast<uint32_t>(in_w * lo.scale_x);
+  lo.out_h = static_cast<uint32_t>(in_h * lo.scale_y);
+  // centered; a centered box has the same offsets whichever way it is rotated
+  lo.off_x = lo.swap ? (pic_w - lo.out_h) / 2 : (pic_w - lo.out_w) / 2;
+  lo.off_y = lo.swap ? (pic_h - lo.out_w) / 2 : (pic_h - lo.out_h) / 2;
+  return lo;
+}
+
+IRAM_ATTR bool Tab5Emu::blit_tile(const Layout &lo, size_t x0, size_t y0, size_t tw, size_t th) {
+  auto fb = dpi_frame_buffer();
+  if (!fb || !ppa_client_) {
+    return false;
+  }
+  // the tile's scaled rect in landscape (logical) space; tile origins are
+  // multiples of 16 so these are exact for any 1/16-step scale
+  const uint32_t X0 = static_cast<uint32_t>(std::lround(x0 * lo.scale_x));
+  const uint32_t Y0 = static_cast<uint32_t>(std::lround(y0 * lo.scale_y));
+  const uint32_t X1 = static_cast<uint32_t>(std::lround((x0 + tw) * lo.scale_x));
+  const uint32_t Y1 = static_cast<uint32_t>(std::lround((y0 + th) * lo.scale_y));
+  // where that rect lands on the panel (same mapping as lv_display_rotate_area)
+  uint32_t bx = 0, by = 0;
+  switch (lo.angle) {
+  case PPA_SRM_ROTATION_ANGLE_90:
+    bx = Y0;
+    by = lo.out_w - X1;
+    break;
+  case PPA_SRM_ROTATION_ANGLE_180:
+    bx = lo.out_w - X1;
+    by = lo.out_h - Y1;
+    break;
+  case PPA_SRM_ROTATION_ANGLE_270:
+    bx = lo.out_h - Y1;
+    by = X0;
+    break;
+  default:
+    bx = X0;
+    by = Y0;
+    break;
+  }
+  ppa_srm_oper_config_t srm = {};
+  srm.in.buffer = tile_buf_;
+  srm.in.pic_w = tw;
+  srm.in.pic_h = th;
+  srm.in.block_w = tw;
+  srm.in.block_h = th;
+  srm.in.srm_cm = PPA_SRM_COLOR_MODE_RGB565;
+  srm.out.buffer = fb;
+  srm.out.buffer_size = dpi_fb_bytes_;
+  srm.out.pic_w = Bsp::display_width();
+  srm.out.pic_h = Bsp::display_height();
+  srm.out.block_offset_x = lo.off_x + bx;
+  srm.out.block_offset_y = lo.off_y + by;
+  srm.out.srm_cm = PPA_SRM_COLOR_MODE_RGB565;
+  srm.rotation_angle = lo.angle;
+  srm.scale_x = lo.scale_x;
+  srm.scale_y = lo.scale_y;
+  srm.mode = PPA_TRANS_MODE_BLOCKING;
+  auto err = ppa_do_scale_rotate_mirror(ppa_client_, &srm);
+  if (err != ESP_OK) {
+    logger_.error_rate_limited("PPA scale/rotate failed: {} (tile {},{} {}x{} -> {},{})", esp_err_to_name(err), x0,
+                               y0, tw, th, lo.off_x + bx, lo.off_y + by);
+    return false;
+  }
+  return true;
+}
+
+IRAM_ATTR bool Tab5Emu::video_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
+  VideoFrame vf{nullptr, nullptr, 0, 0};
+  // Wait without removing: pop and lease transfer are serialized with push.
+  if (xQueuePeek(video_queue_, &vf, portMAX_DELAY) != pdTRUE) {
+    return false;
+  }
+  {
+    std::lock_guard<std::mutex> lock(video_queue_mutex_);
+    if(xQueueReceive(video_queue_,&vf,0)!=pdTRUE)return false;
+  }
+  std::lock_guard<std::recursive_mutex> lk(video_frame_mutex_);
+  if (vf.frame == nullptr) {
+    clear_screen();
+    xSemaphoreGive(frame_done_);
+    return false;
+  }
+  if (!ensure_tile_buffer() || native_width_ == 0 || native_height_ == 0) {
+    release_video_frame(vf.frame);
+    xSemaphoreGive(frame_done_);
+    return false;
+  }
+  const auto t0 = esp_timer_get_time();
+  const uint32_t c0 = esp_cpu_get_cycle_count();
+  const auto lo = layout();
+  const size_t sw = staging_width();
+  const size_t sh = staging_height();
+  const size_t tile_pixels = tile_buf_bytes_ / sizeof(uint16_t);
+  // Tile along the axis that maps to panel rows: the PPA driver cache-syncs
+  // every panel row a block touches, so a tile should cover few panel rows.
+  // Tile origins are multiples of 16 pixels so they scale to exact positions.
+  size_t tw = sw, th = sh;
+  if (sw * sh > tile_pixels) {
+    if (lo.swap) {
+      tw = std::max<size_t>(16, (tile_pixels / sh) & ~size_t(15));
+    } else {
+      th = std::max<size_t>(16, (tile_pixels / sw) & ~size_t(15));
+    }
+  }
+  uint64_t convert_us = 0, blit_us = 0;
+  uint32_t tiles = 0;
+  for (size_t y0 = 0; y0 < sh; y0 += th) {
+    const size_t h = std::min(th, sh - y0);
+    for (size_t x0 = 0; x0 < sw; x0 += tw) {
+      const size_t w = std::min(tw, sw - x0);
+      const auto t1 = esp_timer_get_time();
+      convert_tile(vf.frame, vf.overlay, vf.overlay_row_begin, vf.overlay_row_end, x0, y0, w, h);
+      const auto t2 = esp_timer_get_time();
+      blit_tile(lo, x0, y0, w, h);
+      const auto t3 = esp_timer_get_time();
+      convert_us += t2 - t1;
+      blit_us += t3 - t2;
+      tiles++;
+    }
+  }
+  draw_touch_controls();
+  video_stats_.convert_us += convert_us;
+  video_stats_.blit_us += blit_us;
+  video_stats_.frames++;
+  video_stats_.tiles += tiles;
+  update_frame_time(esp_timer_get_time() - t0);
+  blit_cycles_.fetch_add(esp_cpu_get_cycle_count() - c0, std::memory_order_relaxed);
+  frames_blitted_.fetch_add(1, std::memory_order_relaxed);
+  release_video_frame(vf.frame);
+  xSemaphoreGive(frame_done_);
+  return false;
+}
+
+// Convert the staging rect [x0,x0+tw)x[y0,y0+th) into the tile buffer (pitch
+// tw). The staging frame is the native frame upscaled by staging_scale()
+// (nearest neighbour) with the overlay drawn 1:1 on top, centered, palette
+// index 0 transparent.
+IRAM_ATTR void Tab5Emu::convert_tile(const void *frame, const void *overlay, size_t ov_r0, size_t ov_r1, size_t x0, size_t y0,
+                           size_t tw, size_t th) {
+  const size_t k = staging_scale();
+  const size_t sw = staging_width();
+  const size_t sh = staging_height();
+  uint16_t *tile = tile_buf_;
+  if (!has_palette()) {
+    // RGB565 native frames: no overlay support (k == 1), plain copy
+    const uint16_t *src = static_cast<const uint16_t *>(frame);
+    for (size_t r = 0; r < th; r++) {
+      memcpy(tile + r * tw, src + (y0 + r) * native_pitch_ + x0, tw * sizeof(uint16_t));
+    }
+    return;
+  }
+  const uint8_t *src = static_cast<const uint8_t *>(frame);
+  const uint16_t *pal = palette_;
+  // Each index is masked to the palette's size (a power of two), as on the
+  // box: a core may keep flags in the upper bits. smsplus marks sprite and
+  // priority pixels with 0x40 / 0x20 in its 32-color palette, so unmasked its
+  // sprites took their colors from whatever followed the palette in memory.
+  const uint8_t m = static_cast<uint8_t>(palette_size_ - 1 < 256 ? palette_size_ - 1 : 0xFF);
+  for (size_t r = 0; r < th; r++) {
+    const size_t Y = y0 + r;
+    uint16_t *dst = tile + r * tw;
+    if (k > 1 && (Y % k) != 0 && r > 0) {
+      // same native row as the previous staging row
+      memcpy(dst, dst - tw, tw * sizeof(uint16_t));
+      continue;
+    }
+    const uint8_t *row = src + (Y / k) * native_pitch_;
+    if (k == 1) {
+      const uint8_t *s = row + x0;
+      size_t x = 0;
+      for (; x + 4 <= tw; x += 4) {
+        dst[x + 0] = pal[s[x + 0] & m];
+        dst[x + 1] = pal[s[x + 1] & m];
+        dst[x + 2] = pal[s[x + 2] & m];
+        dst[x + 3] = pal[s[x + 3] & m];
+      }
+      for (; x < tw; x++) {
+        dst[x] = pal[s[x] & m];
+      }
+    } else if (k == 2 && (x0 % 2) == 0 && (tw % 2) == 0) {
+      // write pixel pairs as 32-bit words
+      const uint8_t *s = row + x0 / 2;
+      uint32_t *d32 = reinterpret_cast<uint32_t *>(dst);
+      const size_t n = tw / 2;
+      for (size_t i = 0; i < n; i++) {
+        const uint32_t p = pal[s[i] & m];
+        d32[i] = p | (p << 16);
+      }
+    } else {
+      for (size_t x = 0; x < tw; x++) {
+        dst[x] = pal[row[(x0 + x) / k] & m];
+      }
+    }
+  }
+  if (!overlay || overlay_width_ == 0 || overlay_height_ == 0) {
+    return;
+  }
+  // keyed overlay, 1:1, centered in the staging frame; only the overlay rows
+  // in [ov_r0, ov_r1) can hold visible pixels. 4-pixel groups that are all
+  // transparent are skipped cheaply.
+  const size_t ow = std::min(overlay_width_, sw);
+  const size_t oh = std::min(overlay_height_, sh);
+  const size_t ox = (sw - ow) / 2;
+  const size_t oy = (sh - oh) / 2;
+  // overlay row / column ranges (in overlay pixels) intersecting this tile
+  const size_t sy0 = std::max(oy, y0), sy1 = std::min(oy + oh, y0 + th);
+  const size_t sx0 = std::max(ox, x0), sx1 = std::min(ox + ow, x0 + tw);
+  if (sy1 <= sy0 || sx1 <= sx0) {
+    return;
+  }
+  const size_t r0 = std::max(ov_r0, sy0 - oy);
+  const size_t r1 = std::min(ov_r1, sy1 - oy);
+  const size_t c0 = sx0 - ox;
+  const size_t c1 = sx1 - ox;
+  if (r1 <= r0) {
+    return;
+  }
+  const uint8_t *ov = static_cast<const uint8_t *>(overlay);
+  for (size_t r = r0; r < r1; r++) {
+    const uint8_t *row = ov + r * overlay_pitch_;
+    uint16_t *dst = tile + (oy + r - y0) * tw + (ox - x0);
+    size_t c = c0;
+    for (; c + 4 <= c1; c += 4) {
+      uint32_t word;
+      memcpy(&word, row + c, sizeof(word));
+      if (word == 0) {
+        continue;
+      }
+      if (row[c + 0]) dst[c + 0] = pal[row[c + 0] & m];
+      if (row[c + 1]) dst[c + 1] = pal[row[c + 1] & m];
+      if (row[c + 2]) dst[c + 2] = pal[row[c + 2] & m];
+      if (row[c + 3]) dst[c + 3] = pal[row[c + 3] & m];
+    }
+    for (; c < c1; c++) {
+      if (row[c]) dst[c] = pal[row[c] & m];
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "firmware": "0.1.15",
+  "elf_sha256": "360a8d438ebfe5eb0bfc82ee7d3084b17d87a57bffd747ee3e37d073c5456c64",
+  "complete": true,
+  "rtc": {
+    "clock_day": 0,
+    "clock_seconds": 35,
+    "carry": 1,
+    "timestamp": 1795460922,
+    "latched_registers": [
+      35,
+      14,
+      1,
+      0,
+      128
+    ],
+    "offline_advance_seconds": 4
+  },
+  "mbc2": {
+    "nibble_write": 11,
+    "mirror_read": 11,
+    "zero_bank_alias": 7,
+    "container_bytes": 8192
+  },
+  "md": {
+    "rom_sha256": "7910847b8b4a7616b064d2dfb69e0d6582b477fb536613ea490695de6f8716b3",
+    "six_button_snapshot": "1310701f",
+    "mode_start_reaches_guest": true,
+    "battery_bytes": 8192
+  },
+  "state_keeps_current_controller_mode_both_directions": true,
+  "controller_state_disposable_slot": 3,
+  "smd": {
+    "rom_sha256": "505e5dc513ecad10646257bb0d94c039cae1972b853b37d24eabf7d2a93c1527",
+    "six_button_snapshot": "1310701f",
+    "mode_start_reaches_guest": true,
+    "battery_bytes": 8192
+  }
+}

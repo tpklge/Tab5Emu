@@ -1,0 +1,4 @@
+snes: SPC working state 66640 bytes, internal=1
+snes: SPC working state 66640 bytes, internal=0
+snes: SPC working state 66640 bytes, internal=0
+SNES actual SPC/APU: one-second clock, state round trip, internal/fallback/OOM and lifetime OK

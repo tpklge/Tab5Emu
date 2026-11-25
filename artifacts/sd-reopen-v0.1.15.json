@@ -1,0 +1,69 @@
+{
+  "info": {
+    "chip": "ESP32-P4",
+    "chip_revision": 103,
+    "idf": "v6.1",
+    "firmware": "0.1.15",
+    "elf_sha256": "360a8d438ebfe5eb0bfc82ee7d3084b17d87a57bffd747ee3e37d073c5456c64",
+    "cpu_mhz": 360
+  },
+  "complete": true,
+  "boots": [
+    {
+      "fixture": "rtc",
+      "frames": 26
+    },
+    {
+      "fixture": "rtc",
+      "frames": 29
+    },
+    {
+      "fixture": "mbc2",
+      "frames": 29
+    },
+    {
+      "fixture": "rtc",
+      "frames": 27
+    },
+    {
+      "fixture": "rtc",
+      "frames": 29
+    },
+    {
+      "fixture": "mbc2",
+      "frames": 29
+    },
+    {
+      "fixture": "rtc",
+      "frames": 27
+    },
+    {
+      "fixture": "rtc",
+      "frames": 30
+    },
+    {
+      "fixture": "mbc2",
+      "frames": 29
+    },
+    {
+      "fixture": "rtc",
+      "frames": 27
+    },
+    {
+      "fixture": "rtc",
+      "frames": 30
+    },
+    {
+      "fixture": "mbc2",
+      "frames": 29
+    }
+  ],
+  "msc_after": {
+    "host_allowed": false,
+    "blocked_reads": 0,
+    "blocked_writes": 0,
+    "blocked_ready": 90
+  },
+  "coredump_bytes": 0,
+  "storage_or_panic_errors_in_cdc": []
+}

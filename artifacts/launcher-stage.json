@@ -1,0 +1,13 @@
+{
+  "remote": "/sdcard/APP/tab5-emu-5d6c40c6eb26dc2e.bin",
+  "size": 4000896,
+  "sha256": "5d6c40c6eb26dc2efe22b38fa373f4f6baa02823d03d4d3b0df3beaa43fb944f",
+  "uploaded": true,
+  "received_hash_verified": true,
+  "installed": false,
+  "plan": {
+    "ok": true,
+    "message": "Instalar tab5-emu no slot 4 (app4). Reorganiza a flash e reinicia. Confirme a instalacao na tela SD apos reiniciar. Os dados exigidos pelo firmware podem ser compartilhados; confira as particoes antes de confirmar.",
+    "willRestart": true
+  }
+}

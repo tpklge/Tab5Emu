@@ -1,0 +1,12 @@
+{
+  "firmware": "0.1.9",
+  "elf_sha256": "05438b50e19105d6c40be0f8c40c5b8b884c3779ab013cf6f13ccd61e541f901",
+  "fixture_sha256": "9c8d794f22356d396b5f7780a2538356f474503f1d250456e1da33bde4c36c47",
+  "passed": true,
+  "instructions": 22,
+  "core_bytes": 13635168,
+  "cause": 36,
+  "epc": 2147483736,
+  "elapsed_us": 106746,
+  "unsupported": ""
+}

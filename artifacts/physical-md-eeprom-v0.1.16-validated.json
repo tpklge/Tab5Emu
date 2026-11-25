@@ -1,0 +1,11 @@
+{
+  "complete": false,
+  "elf_sha256": "884954de93057637d15b8101bf3680870ede738b12711e3f11dbe6b8d6833ade",
+  "boards": {
+    "sega": {
+      "rom_sha256": "325aa020d79f337a828c1d412e4467f1dc15b4acc235f3ca03f8d49c30bbd0c2",
+      "complete": false
+    }
+  },
+  "error": "AssertionError('Invalid EEPROM state accepted: digest')"
+}

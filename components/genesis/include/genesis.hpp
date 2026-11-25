@@ -1,0 +1,58 @@
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+#include <span>
+#include <string>
+#include <string_view>
+#include <vector>
+
+#include "genesis_shared_memory.hpp"
+#include "z80_shared_memory.hpp"
+#include "box-emu.hpp"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Initialize the Genesis emulator
+void init_genesis(uint8_t *romdata, size_t rom_data_size);
+
+// Reset the Genesis emulator
+void reset_genesis();
+
+// Load a Genesis save state
+bool load_genesis(std::string_view save_path);
+
+// Save a Genesis save state
+bool save_genesis(std::string_view save_path);
+
+// Run the Genesis emulator
+void run_genesis_rom();
+
+// Deinitialize the Genesis emulator
+void deinit_genesis();
+/// True once init_genesis() succeeded (false after a failed init or deinit).
+/// A cart whose init failed should quit to the menu instead of running.
+bool genesis_is_initialized();
+
+/// Run the 68000 at `percent` of its stock clock (100 = stock). More cycles per
+/// frame let games finish their work before the next V-int, removing most
+/// in-game slowdown (e.g. Sonic 3 losing rings drops to half speed at 100%,
+/// none at 125%). Applies at once, and to games started later. Needs the core
+/// built with M68K_OVERCLOCK_SHIFT; ignored otherwise.
+void genesis_set_cpu_percent(int percent);
+
+// Get the Genesis video buffer
+std::span<uint8_t> get_genesis_video_buffer();
+
+#ifdef __cplusplus
+}
+#endif
+
+bool prepare_genesis_storage(std::string_view hash, const uint8_t *rom, size_t size);
+bool genesis_storage_ready();
+bool flush_genesis_battery();
+uint32_t genesis_frames();
+
+void genesis_set_six_buttons(bool enabled);

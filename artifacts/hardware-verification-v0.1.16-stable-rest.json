@@ -1,0 +1,487 @@
+{
+  "sha256": "e54403bacf87022e2509984d41bb5210d93cf1e466bcdc4419bc3156ebf950af",
+  "elf_sha256": "21775c87b0823ba885f540ba17b7dc76a3edd7ba0ec927a6ab9c1df4e07abf05",
+  "image_bytes": 4024816,
+  "profile": "stable",
+  "uploaded": true,
+  "received_hash_verified": true,
+  "installed": true,
+  "booted": true,
+  "return_confirmed": true,
+  "physical_tests": true,
+  "reservation_bytes": 4063232,
+  "other_apps_and_layout_preserved": true,
+  "plan": {
+    "app_only": true,
+    "slot": 4,
+    "reservation_bytes": 4063232,
+    "other_apps_preserved": true,
+    "bootloader_replacement": false,
+    "partition_table_replacement": false
+  },
+  "tests": {
+    "followups": {
+      "complete": true,
+      "elf_sha256": "21775c87b0823ba885f540ba17b7dc76a3edd7ba0ec927a6ab9c1df4e07abf05",
+      "rtc": {
+        "pause_snapshot_sha256": "938ffe248ad2a6e0180fee60700fc7bae3e20194d471aeb259beb372328fa165",
+        "pause_advance_ticks_60hz": 346,
+        "pause_test_wall_seconds": 6.059731957997428,
+        "after_state_load_ticks_60hz": 102,
+        "complete": true,
+        "disposable_slot_removed": true
+      },
+      "editor": {
+        "editor_snapshot_sha256": "430c73ca05e0522b762094753de39c48bdead215a2e86f10d2b7411e874f19d8",
+        "pause_snapshot_sha256": "e854260ef71753833013a6abbd709b417b60be0147bcd0756149418d3199b5b2",
+        "cancel_preserves_profiles": true,
+        "complete": true
+      },
+      "resources": {
+        "wrong_schema_explained": true,
+        "theme_restored": true,
+        "complete": true
+      },
+      "catalog": {
+        "full_catalog_pages_and_accent_search": true,
+        "launch_outside_visible_page": true,
+        "complete": true,
+        "catalog_restored": true
+      }
+    },
+    "storage_failures": {
+      "complete": true,
+      "elf_sha256": "21775c87b0823ba885f540ba17b7dc76a3edd7ba0ec927a6ab9c1df4e07abf05",
+      "fixture_sha256": "ab627e010bda9132328e5b2f69b5ec1c98f19a5a45737a9bce1dc4553d03d234",
+      "slot": 4,
+      "save_error": "Falha ao salvar estado. Confira cartao e espaco livre.",
+      "previous_state_preserved": true,
+      "load_error": "Falha ao carregar estado. Arquivo invalido ou erro de leitura.",
+      "valid_load_clears_error": true,
+      "quit_error": "Falha ao gravar save. Saida cancelada; confira cartao e espaco livre.",
+      "previous_battery_preserved": true,
+      "launcher_error": "Falha ao gravar save. Retorno ao Launcher cancelado.",
+      "retry_persists_battery": true,
+      "disposable_files_removed": true
+    },
+    "gb_rom_validation": {
+      "complete": true,
+      "elf_sha256": "21775c87b0823ba885f540ba17b7dc76a3edd7ba0ec927a6ab9c1df4e07abf05",
+      "fixture_sha256": "b17acdc178031b2684553a43217b3a1741285c0f2db520d5aef048d238c326db",
+      "refusals": [
+        {
+          "case": "short_header",
+          "message": "ROM GB/GBC truncada: cabecalho incompleto.",
+          "returned_to_library": true
+        },
+        {
+          "case": "missing_banks",
+          "message": "ROM GB/GBC truncada: faltam bancos declarados no cabecalho.",
+          "returned_to_library": true
+        },
+        {
+          "case": "unsupported_mapper",
+          "message": "Mapper GB/GBC ainda nao suportado por este nucleo.",
+          "returned_to_library": true
+        },
+        {
+          "case": "unsupported_geometry",
+          "message": "Tamanho de ROM GB/GBC nao suportado por este nucleo.",
+          "returned_to_library": true
+        },
+        {
+          "case": "invalid_ram",
+          "message": "Tamanho de RAM GB/GBC invalido no cabecalho.",
+          "returned_to_library": true
+        }
+      ],
+      "original_rom_restored": true
+    },
+    "sram": [
+      {
+        "system": "gb",
+        "rom_sha256": "b17acdc178031b2684553a43217b3a1741285c0f2db520d5aef048d238c326db",
+        "boots": [
+          {
+            "counter": 37,
+            "loaded_state": false,
+            "saved_state": true,
+            "frames_before_quit": 20
+          },
+          {
+            "counter": 38,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 23
+          },
+          {
+            "counter": 37,
+            "loaded_state": true,
+            "saved_state": false,
+            "frames_before_quit": 22
+          },
+          {
+            "counter": 38,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 22
+          }
+        ],
+        "complete": true,
+        "normal_save_survives_cold_core_init": true,
+        "state_restores_sram": true,
+        "previous_distinct_generation_preserved": true,
+        "recovery_not_repeated": "existing rejected fixture preserved",
+        "invalid_state_rejected": true,
+        "invalid_state_fixture_removed": true
+      },
+      {
+        "system": "gbc",
+        "rom_sha256": "eb25bcf2d6ab19605e70572ee80595e2f4f5704e037bc82290a33a435c92acec",
+        "boots": [
+          {
+            "counter": 32,
+            "loaded_state": false,
+            "saved_state": true,
+            "frames_before_quit": 19
+          },
+          {
+            "counter": 33,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 22
+          },
+          {
+            "counter": 32,
+            "loaded_state": true,
+            "saved_state": false,
+            "frames_before_quit": 23
+          },
+          {
+            "counter": 33,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 23
+          }
+        ],
+        "complete": true,
+        "normal_save_survives_cold_core_init": true,
+        "state_restores_sram": true,
+        "previous_distinct_generation_preserved": true,
+        "recovery_not_repeated": "existing rejected fixture preserved",
+        "invalid_state_rejected": true,
+        "invalid_state_fixture_removed": true
+      },
+      {
+        "system": "snes",
+        "rom_sha256": "8d54cd75ecfecb2cb3a05da92ee284da6b6f92061af1bc987b8a4a3e13d19e16",
+        "boots": [
+          {
+            "counter": 36,
+            "loaded_state": false,
+            "saved_state": true,
+            "frames_before_quit": 30
+          },
+          {
+            "counter": 37,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 19
+          },
+          {
+            "counter": 36,
+            "loaded_state": true,
+            "saved_state": false,
+            "frames_before_quit": 19
+          },
+          {
+            "counter": 37,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 18
+          }
+        ],
+        "complete": true,
+        "normal_save_survives_cold_core_init": true,
+        "state_restores_sram": true,
+        "previous_distinct_generation_preserved": true,
+        "recovery_not_repeated": "existing rejected fixture preserved",
+        "invalid_state_rejected": true,
+        "invalid_state_fixture_removed": true
+      }
+    ],
+    "compatibility": {
+      "firmware": "0.1.16",
+      "elf_sha256": "21775c87b0823ba885f540ba17b7dc76a3edd7ba0ec927a6ab9c1df4e07abf05",
+      "complete": true,
+      "rtc": {
+        "clock_day": 1,
+        "clock_seconds": 38,
+        "carry": 1,
+        "latched_registers": [
+          38,
+          40,
+          2,
+          1,
+          128
+        ],
+        "offline_advance_seconds": 5
+      },
+      "mbc2": {
+        "nibble_write": 11,
+        "mirror_read": 11,
+        "zero_bank_alias": 7,
+        "container_bytes": 8192
+      },
+      "md": {
+        "rom_sha256": "7910847b8b4a7616b064d2dfb69e0d6582b477fb536613ea490695de6f8716b3",
+        "six_button_snapshot": "1310701f",
+        "mode_start_reaches_guest": true,
+        "battery_bytes": 8192
+      },
+      "smd": {
+        "rom_sha256": "505e5dc513ecad10646257bb0d94c039cae1972b853b37d24eabf7d2a93c1527",
+        "six_button_snapshot": "1310701f",
+        "mode_start_reaches_guest": true,
+        "battery_bytes": 8192
+      }
+    },
+    "gba": {
+      "complete": true,
+      "elf_sha256": "21775c87b0823ba885f540ba17b7dc76a3edd7ba0ec927a6ab9c1df4e07abf05",
+      "fixture_sha256": "ab627e010bda9132328e5b2f69b5ec1c98f19a5a45737a9bce1dc4553d03d234",
+      "jit_activation_rejected": true,
+      "tone_window": {
+        "backend": "gpsp-interpreter",
+        "source": "owned 0BSD ~440 Hz tone",
+        "seconds": 20.020602916978532,
+        "sink_delta": {
+          "blocks": 1201,
+          "partial_blocks": 0,
+          "empty_blocks": 0,
+          "missing_frames": 0,
+          "write_errors": 0
+        },
+        "zero_missing_frames": true,
+        "acoustic_measurement": false
+      },
+      "pause_stops_producer": true,
+      "max_submit_gap_after_resume_us": 22307,
+      "persistence": {
+        "firmware": "0.1.16",
+        "initial": {
+          "counter_units": 4,
+          "marker": [
+            120,
+            110
+          ],
+          "marker_color": 65503
+        },
+        "diagonal": {
+          "counter_units": 4,
+          "marker": [
+            132,
+            98
+          ],
+          "marker_color": 65503
+        },
+        "button_a": {
+          "counter_units": 4,
+          "marker": [
+            132,
+            98
+          ],
+          "marker_color": 1984
+        },
+        "incremented": {
+          "counter_units": 5,
+          "marker": [
+            132,
+            98
+          ],
+          "marker_color": 65503
+        },
+        "second_increment": {
+          "counter_units": 6,
+          "marker": [
+            132,
+            98
+          ],
+          "marker_color": 65503
+        },
+        "state_restored": {
+          "counter_units": 5,
+          "marker": [
+            132,
+            98
+          ],
+          "marker_color": 65503
+        },
+        "battery": {
+          "size": 131072,
+          "first_two_bytes": "542e",
+          "sha256": "2b14c63b5785c87fa815b7ba0950f5c6e9d44ca54251c4fe8dc6f7455d95e801"
+        },
+        "savestate_preserves_latest_sram": true,
+        "fresh_boot_battery": {
+          "counter_units": 6,
+          "marker": [
+            120,
+            110
+          ],
+          "marker_color": 65503
+        },
+        "previous_distinct_generation_preserved": true,
+        "backup_valid": true
+      }
+    },
+    "md": {
+      "complete": true,
+      "input_source": "guest 68000 instructions and scripted Start",
+      "rom_sha256": "ec7643d99287d7fd16eed01b1cb69bf2783ec676f199ef16a6c18e97feb197c2",
+      "baseline": 21,
+      "boots": [
+        {
+          "counter": 23,
+          "battery_sha256": "f524f169937e582047a74727eb4d218b83e19817c770cb711846454ae06a9876"
+        },
+        {
+          "counter": 24,
+          "battery_sha256": "394fc3adf7cb3d46bb80ff3b491267d83299d26d8470a7325daa4db95308772d"
+        },
+        {
+          "counter": 23,
+          "battery_sha256": "f524f169937e582047a74727eb4d218b83e19817c770cb711846454ae06a9876"
+        },
+        {
+          "counter": 24,
+          "battery_sha256": "394fc3adf7cb3d46bb80ff3b491267d83299d26d8470a7325daa4db95308772d"
+        }
+      ],
+      "start_guest_input": true,
+      "state_restored_cpu_video_sram": true,
+      "cold_init_battery": true,
+      "previous_distinct_backup": true,
+      "state_bytes": 155270,
+      "invalid_states_rejected": [
+        "truncated",
+        "checksum",
+        "rom_identity",
+        "record_schema"
+      ]
+    },
+    "return": {
+      "complete": true,
+      "elf_sha256": "21775c87b0823ba885f540ba17b7dc76a3edd7ba0ec927a6ab9c1df4e07abf05",
+      "coredump_before": 0,
+      "resources": {
+        "fonts_loaded": 4,
+        "font_fallback": false,
+        "theme_error": ""
+      },
+      "native_usb_enumerated_before_console_open": true,
+      "launcher_version": "0.8.0-rc.2",
+      "apps_and_layout_unchanged_at_install": true,
+      "explicit_boot_retry": true,
+      "final_state": "menu",
+      "final_coredump_bytes": 0,
+      "gba_cpu_requested": 0,
+      "gba_cpu_limits": [
+        0,
+        0
+      ]
+    },
+    "host": {
+      "python": 48,
+      "cpp_suites": 10,
+      "c_suites": 2,
+      "sanitizers": [
+        "ASan",
+        "UBSan"
+      ],
+      "passed": true
+    },
+    "stable_artifact_gate": {
+      "passed": true,
+      "jit_compiled": false,
+      "heap_diagnostics_compiled": false,
+      "same_reservation": true
+    },
+    "audio_feeder": {
+      "upstream_sha256": "5c6aedcbd54a6524b25dc4637201996f86702a155effc97335ed07a0f8487a18",
+      "whole_block_wait_ms": 16,
+      "dma_descriptors": 16,
+      "real_feeder_host_test": true,
+      "jitter_12ms_absorbed": true,
+      "stale_notifications_keep_total_deadline": true
+    },
+    "ci": {
+      "github_actions_run": false,
+      "local_build_tests_yaml": true
+    },
+    "ui_error_label_visually_checked": true,
+    "editor_navigation_input_source": "scripted emulink buttons; physical A164 and two-pad coverage not claimed",
+    "final_state": "menu",
+    "final_coredump_bytes": 0
+  },
+  "prior_audio_observations": [
+    {
+      "elf_sha256": "0a1de4ab784cdd856dbaf9e3d825aeffd441e83bc5e821c0e21bede11f8de500",
+      "whole_block_wait_ms": 8,
+      "tone_window": {
+        "source": "own GBA 0BSD diagnostic ~440Hz",
+        "backend": "gpsp-interpreter",
+        "seconds": 20.015969208005117,
+        "sink_delta": {
+          "blocks": 1201,
+          "partial_blocks": 1,
+          "empty_blocks": 0,
+          "missing_frames": 141,
+          "write_errors": 0
+        }
+      },
+      "zero_frames_criterion_passed": false
+    },
+    {
+      "elf_sha256": "844acdd8df48661536aba96fa8f77648660c0afce5a354a6db5b8445c15a9702",
+      "whole_block_wait_ms": 8,
+      "tone_window": {
+        "backend": "gpsp-interpreter",
+        "source": "owned 0BSD ~440 Hz tone",
+        "seconds": 20.014280124974903,
+        "sink_delta": {
+          "blocks": 1201,
+          "partial_blocks": 1,
+          "empty_blocks": 0,
+          "missing_frames": 228,
+          "write_errors": 0
+        },
+        "zero_missing_frames": false,
+        "acoustic_measurement": false
+      },
+      "zero_frames_criterion_passed": false
+    }
+  ],
+  "limitations": [
+    "RV32/JIT heap corruption remains known; backend disabled and its memory management unchanged; dumps/tests/diagnostics preserved.",
+    "One owned-tone window at 16ms passed zero-inserted-silence; this does not certify acoustic quality, general APU accuracy or heavy-game throughput.",
+    "Two physical USB pads, A164 rollover/hotplug, SD removal/full-card/power-loss and wider game compatibility remain pending.",
+    "MD serial EEPROM/additional mappers and automatic legacy-state migration remain unsupported.",
+    "Console ACK alone did not confirm boot; an explicit additional boot order was needed before final native enumeration and ELF verification.",
+    "GitHub Actions not run remotely; local build/test/package evidence is kept separate."
+  ],
+  "preserved_diagnostic_attempts": [
+    {
+      "report": "stable-rest-followups.local.json",
+      "reason": "Test used a nonexistent theme setter; corrected test restores the active theme file and passed."
+    },
+    {
+      "report": "stable-rest-roms.local.json",
+      "reason": "New selector raced GUI resume after a refused ROM; main-queue synchronization fixed it; five sequential refusals passed in final ELF."
+    },
+    {
+      "report": "stable-rest-return.local.json",
+      "reason": "First console boot did not enumerate emulator; explicit second boot recovered same ELF with empty coredump. Final return reports retry explicitly."
+    }
+  ]
+}

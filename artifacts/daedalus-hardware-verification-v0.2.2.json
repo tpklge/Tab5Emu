@@ -1,0 +1,391 @@
+{
+  "format": "tab5-daedalus-hardware-verification-v1",
+  "complete": true,
+  "firmware": {
+    "profile": "sd-cores",
+    "image_bytes": 4047216,
+    "reservation_bytes": 4063232,
+    "sha256": "5dc96802979a68d235cc9812127b259d07c4a739037659e11109cb2e71f88856",
+    "elf_sha256": "b2000f29e1ef4438f678b2fbe67b2c6c133440672cbb9bb7ce577012114e3996",
+    "cores": [
+      {
+        "core": "n64",
+        "file": "n64-b49cfb0eecbbe6fc4b8139aa1d05629699edf161eca9c331db34dfbb7f458b04.bin",
+        "bytes": 442880,
+        "load_address": 1210182912,
+        "sha256": "b49cfb0eecbbe6fc4b8139aa1d05629699edf161eca9c331db34dfbb7f458b04"
+      },
+      {
+        "core": "gba",
+        "file": "gba-9419f5d294ed8e718c8306a477a53a72c07ad264429f16ce622621d0631794f2.bin",
+        "bytes": 380160,
+        "load_address": 1210182912,
+        "sha256": "9419f5d294ed8e718c8306a477a53a72c07ad264429f16ce622621d0631794f2"
+      },
+      {
+        "core": "snes",
+        "file": "snes-2a982c5019e95d2f129c1e64260ff01b0baad47fb84b4abfa46783e1a43c0af7.bin",
+        "bytes": 403200,
+        "load_address": 1210182912,
+        "sha256": "2a982c5019e95d2f129c1e64260ff01b0baad47fb84b4abfa46783e1a43c0af7"
+      },
+      {
+        "core": "genesis",
+        "file": "genesis-47f4a15a1d711a73d8e06149ac3a5df7ede1084e6d0501ead892e4d35f6a0ce6.bin",
+        "bytes": 762880,
+        "load_address": 1210182912,
+        "sha256": "47f4a15a1d711a73d8e06149ac3a5df7ede1084e6d0501ead892e4d35f6a0ce6"
+      },
+      {
+        "core": "gbc",
+        "file": "gbc-94e07b68274d7ce094b783004817a61dbaa86a23b499146c48d9980166acb43f.bin",
+        "bytes": 70912,
+        "load_address": 1210182912,
+        "sha256": "94e07b68274d7ce094b783004817a61dbaa86a23b499146c48d9980166acb43f"
+      }
+    ],
+    "n64_graphics": "daedalus-hle-software",
+    "jit_compiled": false,
+    "app_only": true,
+    "hardware_tested": true
+  },
+  "device": {
+    "chip": "ESP32-P4",
+    "chip_revision": 103,
+    "cores": 2,
+    "idf": "v6.1",
+    "project": "tab5-emu",
+    "firmware": "0.2.2-sd",
+    "elf_sha256": "b2000f29e1ef4438f678b2fbe67b2c6c133440672cbb9bb7ce577012114e3996",
+    "running_partition": "app0",
+    "boot_partition": "launcher",
+    "flash_size": 16777216,
+    "psram_size": 33554432,
+    "cpu_mhz": 360
+  },
+  "installation": {
+    "transport": "Launcher operation API",
+    "user_authorized_after_launcher_update": true,
+    "slot": 0,
+    "installed": true,
+    "fresh_catalog_before": true,
+    "launcher_managed_allocation": true,
+    "after_layout": {
+      "sizes": [
+        4063232,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "minimum": [
+        4063232,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "launcher": 2031616,
+      "capacity": 8388608,
+      "data": 65536,
+      "unallocated": 6160384,
+      "boot": 131072
+    },
+    "raw_flash_commands_used": false,
+    "sd_core_files": [
+      {
+        "path": "/sdcard/Tab5-Emu/cores/n64-b49cfb0eecbbe6fc4b8139aa1d05629699edf161eca9c331db34dfbb7f458b04.bin",
+        "bytes": 442880,
+        "sha256": "b49cfb0eecbbe6fc4b8139aa1d05629699edf161eca9c331db34dfbb7f458b04",
+        "readback_verified": true
+      },
+      {
+        "path": "/sdcard/Tab5-Emu/cores/gba-9419f5d294ed8e718c8306a477a53a72c07ad264429f16ce622621d0631794f2.bin",
+        "bytes": 380160,
+        "sha256": "9419f5d294ed8e718c8306a477a53a72c07ad264429f16ce622621d0631794f2",
+        "readback_verified": true
+      },
+      {
+        "path": "/sdcard/Tab5-Emu/cores/snes-2a982c5019e95d2f129c1e64260ff01b0baad47fb84b4abfa46783e1a43c0af7.bin",
+        "bytes": 403200,
+        "sha256": "2a982c5019e95d2f129c1e64260ff01b0baad47fb84b4abfa46783e1a43c0af7",
+        "readback_verified": true
+      },
+      {
+        "path": "/sdcard/Tab5-Emu/cores/genesis-47f4a15a1d711a73d8e06149ac3a5df7ede1084e6d0501ead892e4d35f6a0ce6.bin",
+        "bytes": 762880,
+        "sha256": "47f4a15a1d711a73d8e06149ac3a5df7ede1084e6d0501ead892e4d35f6a0ce6",
+        "readback_verified": true
+      },
+      {
+        "path": "/sdcard/Tab5-Emu/cores/gbc-94e07b68274d7ce094b783004817a61dbaa86a23b499146c48d9980166acb43f.bin",
+        "bytes": 70912,
+        "sha256": "94e07b68274d7ce094b783004817a61dbaa86a23b499146c48d9980166acb43f",
+        "readback_verified": true
+      }
+    ],
+    "sd_core_readback_sha256_verified": true
+  },
+  "sd_core_smoke": {
+    "complete": true,
+    "catalog_totals": {
+      "gb": 11,
+      "gbc": 15,
+      "gba": 16,
+      "snes": 11,
+      "megadrive": 17,
+      "n64": 22
+    },
+    "truncated_core_rejected": true,
+    "damaged_test_module_restored": true,
+    "core_recovery_passed": true,
+    "coredump_bytes": 0
+  },
+  "cross_core_boot_cycles": 13,
+  "n64_own_fixture": {
+    "complete": true,
+    "rom_sha256": "f0006c5a30bb1926a4759d2fc959aefb4ad4e908f3f333db9bb619aa314979c6",
+    "a_changes_rdp_color": true,
+    "battery_bytes": 198656,
+    "first_counter": 11,
+    "second_counter": 12,
+    "coredump_bytes": 0
+  },
+  "gba_audio": {
+    "acoustic_measurement": false,
+    "sessions": [
+      {
+        "scene": "owned-tone",
+        "startup": {
+          "startup_blocks": 6,
+          "startup_partial_blocks": 0,
+          "startup_empty_blocks": 1,
+          "startup_missing_frames": 800,
+          "startup_write_errors": 0
+        },
+        "first_5_seconds_cumulative_sink": {
+          "blocks": 305,
+          "partial_blocks": 0,
+          "empty_blocks": 0,
+          "missing_frames": 0,
+          "max_write_gap_us": 20162,
+          "write_errors": 0,
+          "late_blocks": 102,
+          "late_frames": 16015,
+          "startup_blocks": 6,
+          "startup_partial_blocks": 0,
+          "startup_empty_blocks": 1,
+          "startup_missing_frames": 800,
+          "startup_write_errors": 0
+        },
+        "steady_10_second_window": {
+          "seconds": 10.00420424999902,
+          "vi_per_s": 59.7748691506432,
+          "sink_delta": {
+            "blocks": 600,
+            "partial_blocks": 0,
+            "empty_blocks": 0,
+            "missing_frames": 0,
+            "write_errors": 0
+          }
+        },
+        "last_gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 1208,
+          "frames_drawn": 1208,
+          "frames_skipped": 0,
+          "run_us": 17666846,
+          "video_callback_us": 967326,
+          "audio_callback_us": 683220,
+          "pacing_us": 2336297,
+          "audio_requested_bytes": 2649932,
+          "audio_accepted_bytes": 2649932,
+          "median_run_us": 14385,
+          "p95_run_us": 16600,
+          "p99_run_us": 18785,
+          "window_samples": 1024,
+          "execute_us": 15847700,
+          "hardware_us": 4312876,
+          "ppu_us": 3173123,
+          "jit_us": 0,
+          "rom_page_us": 0,
+          "rom_page_loads": 0,
+          "sd_read_us": 0,
+          "sd_read_bytes": 0,
+          "sd_read_calls": 0
+        }
+      },
+      {
+        "scene": "circle",
+        "startup": {
+          "startup_blocks": 6,
+          "startup_partial_blocks": 0,
+          "startup_empty_blocks": 1,
+          "startup_missing_frames": 800,
+          "startup_write_errors": 0
+        },
+        "first_5_seconds_cumulative_sink": {
+          "blocks": 293,
+          "partial_blocks": 0,
+          "empty_blocks": 0,
+          "missing_frames": 0,
+          "max_write_gap_us": 20129,
+          "write_errors": 0,
+          "late_blocks": 98,
+          "late_frames": 15726,
+          "startup_blocks": 6,
+          "startup_partial_blocks": 0,
+          "startup_empty_blocks": 1,
+          "startup_missing_frames": 800,
+          "startup_write_errors": 0
+        },
+        "steady_10_second_window": {
+          "seconds": 9.998110459011514,
+          "vi_per_s": 48.80922270269129,
+          "sink_delta": {
+            "blocks": 600,
+            "partial_blocks": 112,
+            "empty_blocks": 0,
+            "missing_frames": 87816,
+            "write_errors": 0
+          }
+        },
+        "last_gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 1038,
+          "frames_drawn": 700,
+          "frames_skipped": 338,
+          "run_us": 18394554,
+          "video_callback_us": 595717,
+          "audio_callback_us": 1016881,
+          "pacing_us": 1478186,
+          "audio_requested_bytes": 2276864,
+          "audio_accepted_bytes": 2276864,
+          "median_run_us": 18778,
+          "p95_run_us": 22246,
+          "p99_run_us": 22588,
+          "window_samples": 1024,
+          "execute_us": 16649591,
+          "hardware_us": 4227966,
+          "ppu_us": 1847368,
+          "jit_us": 0,
+          "rom_page_us": 0,
+          "rom_page_loads": 0,
+          "sd_read_us": 0,
+          "sd_read_bytes": 0,
+          "sd_read_calls": 0
+        }
+      }
+    ],
+    "known_limit": "Circle intro falls to ~49 VI/s and still has PCM gaps; preroll does not fix sustained CPU deficit. Own tone has no missing frames in steady window. First six blocks include one empty block; acoustic startup quality not certified."
+  },
+  "gba_interpreter_default": true,
+  "rv32_jit_compiled": false,
+  "gba_experimental_memory_manager_changed": false,
+  "heap_corruption_experimental_gba": "Known pending; original tests/dumps retained.",
+  "n64_sm64": {
+    "complete": true,
+    "windows": [
+      {
+        "scene": "title",
+        "selection_hle_tasks": [
+          12,
+          85
+        ],
+        "seconds": 35.64416645799065,
+        "vi_frames": 146,
+        "vi_per_second": 4.096041919568299,
+        "previous_0_2_1_vi_per_second": 2.19,
+        "gain_percent": 87.03387760585841,
+        "cpu_mhz_both": 360
+      },
+      {
+        "scene": "head",
+        "selection_hle_tasks": [
+          130,
+          195
+        ],
+        "seconds": 69.71497587501653,
+        "vi_frames": 131,
+        "vi_per_second": 1.8790797580544802,
+        "previous_0_2_1_vi_per_second": 1.16,
+        "gain_percent": 61.98963431504141,
+        "cpu_mhz_both": 360
+      }
+    ],
+    "start_reached_file_selection": true,
+    "after_start_metrics": {
+      "backend": "mupen-pure-daedalus-hle-software",
+      "instructions": 165246511,
+      "rsp_instructions": 31060372,
+      "rdp_lists": 0,
+      "rom_reads": 398,
+      "exceptions": 3902,
+      "pc": 2150414440,
+      "vi_frames": 691,
+      "vi_width": 320,
+      "ai_buffers": 645,
+      "core_bytes": 434648,
+      "hle_tasks": 234,
+      "hle_triangles": 161386,
+      "hle_pixels": 30428825
+    },
+    "audio_sink": {
+      "blocks": 14333,
+      "partial_blocks": 609,
+      "empty_blocks": 13084,
+      "missing_frames": 10928610,
+      "max_write_gap_us": 36877,
+      "write_errors": 0,
+      "late_blocks": 4778,
+      "late_frames": 1111376,
+      "startup_blocks": 18,
+      "startup_partial_blocks": 3,
+      "startup_empty_blocks": 12,
+      "startup_missing_frames": 11680,
+      "startup_write_errors": 0
+    },
+    "coredump_bytes": 0,
+    "playability": "Still far below full speed; gameplay not certified on Tab5; audio has major gaps.",
+    "scope": "One run per version, approximate matching scene windows, VI/s is not game/render FPS.",
+    "roms_and_captures_in_distribution": false
+  },
+  "final_state": "menu; all systems",
+  "final": {
+    "state": "menu",
+    "catalog_total": 92,
+    "coredump_bytes": 0,
+    "no_panic": true,
+    "elf_sha256": "b2000f29e1ef4438f678b2fbe67b2c6c133440672cbb9bb7ce577012114e3996",
+    "running_partition": "app0",
+    "gba_cpu_requested": 0,
+    "gba_cpu_limits": [
+      0,
+      0
+    ]
+  }
+}

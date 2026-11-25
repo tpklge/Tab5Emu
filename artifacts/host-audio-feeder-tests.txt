@@ -1,0 +1,1 @@
+Real feeder: 12ms producer jitter absorbed; stale notifications bounded; idle/late streams padded safely.

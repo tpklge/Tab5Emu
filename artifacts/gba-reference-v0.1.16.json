@@ -1,0 +1,29 @@
+{
+  "reference_core": "mGBA host",
+  "commit": "feeea8f5c2f53f3fc10e534b54c1b4f7366a42f2",
+  "adapter_sha256": "5a070564b04aba044cc6da3aee8ba106c44ef2ecc5094d24269a6620f7eb5dd9",
+  "guest_frames": 1200,
+  "rom_sha256": "c0191014009e2f48412888a6cd99a6a76e1019740ac0a2be0f5c78df013c726a",
+  "magic": "T5RV",
+  "iterations": 398,
+  "checksum": 4368456,
+  "smc_failures": 0,
+  "scope": "host correctness reference; no mGBA performance claim on Tab5",
+  "iterations_per_frame": 0.33166666666666667,
+  "short_timing_suite": {
+    "mgba": {
+      "comparisons": 380,
+      "passed": 364,
+      "failed": 16,
+      "timer_reads_usable": true,
+      "assessment": "compared with suite expectations"
+    },
+    "stable": {
+      "comparisons": 380,
+      "passed": 4,
+      "failed": 376,
+      "timer_reads_usable": false,
+      "assessment": "Timer0 resolution is insufficient for short instruction sequences; mismatch count is not a conformance diagnosis"
+    }
+  }
+}

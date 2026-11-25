@@ -1,0 +1,86 @@
+{
+  "status": "development; final binary validation pending",
+  "volume_percent": 5,
+  "tests": [
+    {
+      "game": "Tekken Special (user filename Tekken 3 Special)",
+      "elf_sha256": "21d63a46752e212d5a5cde61c25a291d4358daa29f4bfa3eadc5afd316077eac",
+      "scope": "ten screenshots; clock advances and a subsequent round is visible; not a full playthrough",
+      "complete": true,
+      "frame_hashes": [
+        "88ea893a44f3b481427d63191ffb6d55949ceb6f9e0c5d4da38a461bfc8db2dd",
+        "593aa074d7a7cc0b071f330414e177c6817a99552b32643fa78e1ee7bcbcccd0",
+        "538278391f342ba2da2d98941acee9d129725ffe321396d43936e92c202f1c4f",
+        "999f0bcdddeba5a103bde89008ac94ba1d4938cf887354c01b1bb3bfcf962282",
+        "1434e92383709fa9d7694fb63b1267bd4b6dc3562c0907588b96407773d0bab4",
+        "13c0198f0a30f0af75eaa2ffe610628c2f561480fb5f8510a7a2a2d0b7b487b2",
+        "adbcd932306508bf80da4a6afabcf4abf681d621513128084d9a30f208108abb",
+        "c304a327d9f2abb25c0cbc42ec125eea6ab0a425346cc3a2c4b9c2c7b9e4e1e8",
+        "8c5e3a736bbbb97067db96f8c0438750620dce1e4d7f491822ee73758b10bfa1",
+        "9efcbe5479069cfa0bc75c867f1a1ee4ca9a1dec902f0547ef7ded0bdc6cece0"
+      ],
+      "frame_progress": true
+    },
+    {
+      "game": "Aria of Sorrow",
+      "scene": "first playable courtyard, HUD active, stationary",
+      "elf_sha256": "21d63a46752e212d5a5cde61c25a291d4358daa29f4bfa3eadc5afd316077eac",
+      "seconds": 19.07509383399156,
+      "emulated_fps": 59.711370749344226,
+      "presented_fps": 54.731054488424384,
+      "audio_sink_delta": {
+        "blocks": 1139,
+        "partial_blocks": 1,
+        "empty_blocks": 0,
+        "missing_frames": 166,
+        "write_errors": 0
+      }
+    },
+    {
+      "game": "Aria of Sorrow",
+      "scene": "courtyard with A+B held; not a full stage",
+      "elf_sha256": "21d63a46752e212d5a5cde61c25a291d4358daa29f4bfa3eadc5afd316077eac",
+      "seconds": 20.022987167001702,
+      "emulated_fps": 59.83123247336086,
+      "audio_sink_delta": {
+        "blocks": 1201,
+        "partial_blocks": 0,
+        "empty_blocks": 0,
+        "missing_frames": 0,
+        "write_errors": 0
+      }
+    }
+  ],
+  "excluded_measurements": [
+    {
+      "file": "fzero16-race-baseline.local.json",
+      "reason": "screenshot showed machine setting menu; not a race result"
+    },
+    {
+      "file": "umk16-real-fight-lto.local.json",
+      "reason": "capture showed ladder screen; no verified fight during the interval"
+    },
+    {
+      "file": "umk16-fight-active-lto.local.json",
+      "reason": "game had returned to opening by final capture; cannot certify a fight-only interval"
+    },
+    {
+      "file": "final16-circle-first-area.local.json",
+      "reason": "opening dialogue; not a gameplay-only window"
+    }
+  ],
+  "host": {
+    "python_tests": 26,
+    "cpp_suites": 7,
+    "c_suites": [
+      "real SNES APU",
+      "real Musashi RAM bus"
+    ],
+    "sanitizers": [
+      "ASan",
+      "UBSan"
+    ],
+    "passed": true
+  },
+  "no_manual_input_reported_by_user": true
+}

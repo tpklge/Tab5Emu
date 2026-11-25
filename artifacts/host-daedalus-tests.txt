@@ -1,0 +1,1 @@
+Daedalus: F3D fill, scissor, transformed triangle, RGBA16 texrect, DP interrupt, cyclic/nested DL bounds, non-graphics fallback passed.

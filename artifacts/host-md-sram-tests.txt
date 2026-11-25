@@ -1,0 +1,1 @@
+MD linear SRAM: header bounds, byte lanes, enable, write protection, unsupported mappers and state record validation OK

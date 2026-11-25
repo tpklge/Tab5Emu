@@ -1,0 +1,573 @@
+#pragma once
+
+#include <sdkconfig.h>
+
+#include <array>
+#include <atomic>
+#include <memory>
+#include <functional>
+#include <mutex>
+#include <span>
+#include <string>
+#include <vector>
+
+#include <esp_err.h>
+#include <sdmmc_cmd.h>
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
+
+#include "driver/ppa.h"
+
+#include "m5stack-tab5.hpp"
+
+#include "base_component.hpp"
+#include "event_manager.hpp"
+#include "task.hpp"
+
+#include "gamepad_state.hpp"
+#include "input_profiles.hpp"
+#include "audio_probe.hpp"
+#include "video_leases.hpp"
+#include "hid-rp-report-map.hpp"
+#include "usb_device.hpp"
+#include "video_setting.hpp"
+
+/// Event topics published by the HAL (payloads are empty / informational)
+static inline const std::string volume_changed_topic = "tab5-emu/volume";
+static inline const std::string battery_topic = "tab5-emu/battery";
+static inline const std::string menu_button_topic = "tab5-emu/menu";
+
+/// Hardware abstraction layer for the tab5-emu project, wrapping the espp
+/// M5Stack Tab5 BSP. The API intentionally mirrors esp-box-emu's BoxEmu so
+/// that game / emulator glue code can be shared between the two projects.
+class Tab5Emu : public espp::BaseComponent {
+public:
+  using Bsp = espp::M5StackTab5;
+  using Pixel = Bsp::Pixel;
+  using TouchpadData = Bsp::TouchpadData;
+  using touch_callback_t = Bsp::touch_callback_t;
+
+  /// Logical (landscape) screen size the games see
+  static constexpr size_t lcd_width() { return Bsp::display_height(); }  // 1280
+  static constexpr size_t lcd_height() { return Bsp::display_width(); }  // 720
+
+  static constexpr char mount_point[] = "/sdcard";
+
+  /// Access the singleton
+  static Tab5Emu &get() {
+    static Tab5Emu instance;
+    return instance;
+  }
+
+  Tab5Emu(const Tab5Emu &) = delete;
+  Tab5Emu &operator=(const Tab5Emu &) = delete;
+  Tab5Emu(Tab5Emu &&) = delete;
+  Tab5Emu &operator=(Tab5Emu &&) = delete;
+
+  /// Initialize the Tab5 hardware: IO expanders, LCD, LVGL display, touch and
+  /// the BOOT button.
+  bool initialize_tab5();
+
+  /////////////////////////////////////////////////////////////////////////////
+  // uSD Card
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool initialize_sdcard();
+  sdmmc_card_t *sdcard() const;
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Memory (shared "cartridge" buffer, for emulator cores that want the whole
+  // rom in RAM)
+  /////////////////////////////////////////////////////////////////////////////
+
+  size_t copy_file_to_romdata(const std::string &filename);
+  uint8_t *romdata() const { return romdata_; }
+  void free_romdata();
+  /// Make romdata() an empty block of `bytes` (zeroed) instead of a copied
+  /// file: the cores shared with esp-box-emu that run their own allocator in
+  /// the box's fixed 4 MB ROM block (MSX, Doom, Dark Forces) use it that way.
+  /// Freed with the cart like a ROM. Returns false if there is no room.
+  bool reserve_romdata(size_t bytes);
+  /// A permanent PSRAM block reserved at boot for cores that need one big
+  /// contiguous ROM buffer (the SNES core wants 6 MB); the general heap gets
+  /// too fragmented by GUI allocations to guarantee that later. Returns
+  /// nullptr if `bytes` exceeds the reservation.
+  uint8_t *rom_arena(size_t bytes) const {
+    return (rom_arena_ && !romdata_in_arena_ && bytes <= ROM_ARENA_BYTES) ? rom_arena_ : nullptr;
+  }
+  static constexpr size_t rom_arena_size() { return ROM_ARENA_BYTES; }
+  /// Carts that need the PSRAM more than a ROM buffer (JK's level load takes
+  /// ~10 MB) release the arena while they run and reserve it again as soon
+  /// as they are done, before the GUI can fragment the heap.
+  void release_rom_arena();
+  bool reserve_rom_arena();
+  /// A permanent 2 MB PSRAM slab reserved at boot right after the ROM arena,
+  /// for a game's small-object pool (JK): allocating it later would land it
+  /// inside the released arena's hole and split it for good.
+  uint8_t *small_object_slab() const { return small_object_slab_; }
+  static constexpr size_t SMALL_OBJECT_SLAB_BYTES = 2 * 1024 * 1024;
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Audio
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool initialize_audio();
+  bool is_muted() const { return Bsp::get().is_muted(); }
+  /// The Tab5 has no haptic motor; for the glue shared with esp-box-emu
+  void play_haptic_effect() {}
+  void play_haptic_effect(int) {}
+  void mute(bool v);
+  void volume(float volume);
+  float volume() const { return Bsp::get().volume(); }
+  /// Sample rate of the audio the game produces. The DAC stays at its fixed
+  /// rate (48 kHz); other rates are resampled in play_audio(). Changing the
+  /// I2S clock at runtime (the esp-box-emu approach) is avoided: the clock is
+  /// shared with the microphone channel and any mismatch between the game's
+  /// production rate and the DAC drifts the queue until it drops audio.
+  /// `log` = false for the small trims of a dynamic rate control (the
+  /// resampler keeps its phase; only a big change resets it).
+  void audio_sample_rate(uint32_t rate, bool log = true);
+  uint32_t audio_sample_rate() const { return audio_source_rate_; }
+  uint32_t audio_hardware_rate() const { return Bsp::get().audio_sample_rate(); }
+  size_t audio_buffer_size() const { return Bsp::get().audio_buffer_size(); }
+  /// Queue 16-bit interleaved stereo PCM (non-blocking); returns the bytes
+  /// actually queued, which is less than size when the queue is full
+  size_t play_audio(const uint8_t *data, size_t size);
+  size_t play_audio(std::span<const uint8_t> data) { return play_audio(data.data(), data.size()); }
+  /// How long play_audio() may wait for queue space before giving up (0 =
+  /// never wait, drop instead). Waiting paces a game that produces audio
+  /// slightly faster than the DAC consumes it.
+  void audio_playback_expected(bool expected) {tab5::audio_probe::expected(expected);}
+  /// Discard queued PCM and interpolation history at a timeline boundary.
+  /// The core producer must be stopped; lifetime statistics stay cumulative.
+  void discard_audio();
+  uint32_t audio_generation() const { return audio_generation_.load(); }
+  void clear_audio() {discard_audio(); tab5::audio_probe::reset(); audio_clock_ticks_=0; audio_clock_hz_=0; audio_source_frames_total_=0; audio_output_frames_total_=0; audio_dropped_total_=0; audio_max_gap_us_=0; }
+  struct AudioStats { uint64_t source_frames, output_frames, dropped_bytes, max_gap_us, clock_ticks; uint32_t source_rate, hardware_rate, clock_hz; };
+  AudioStats audio_stats() const;
+  void audio_clock(uint64_t clocks,uint32_t hz) {audio_clock_hz_=hz;audio_clock_ticks_=clocks;}
+  void audio_max_wait_ms(uint32_t ms) { audio_max_wait_ms_ = ms; }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Display / brightness
+  /////////////////////////////////////////////////////////////////////////////
+
+  void brightness(float v);
+  float brightness() const { return desired_brightness_.load(); }
+  bool initialize_inactivity();
+  void input_activity();
+  void inactivity_seconds(unsigned seconds) {idle_seconds_=seconds;}
+  void inactivity_in_game(bool enabled){idle_in_game_=enabled;}
+  void game_active(bool active){game_active_=active;}
+  bool input_wake_blocked()const{return wake_block_.load();}
+  bool screen_sleeping() const {return screen_sleeping_.load();}
+  /// The LVGL display (for the GUI / menu components)
+  std::shared_ptr<espp::Display<Pixel>> display() const { return display_; }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Input
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Initialize the input sources (touch virtual gamepad; later USB HID)
+  bool initialize_input();
+  bool initialize_i2c_keyboard();
+  bool i2c_keyboard_present() const { return i2c_keyboard_present_.load(); }
+  bool keyboard_present() const { return usb_keyboard_present() || i2c_keyboard_present(); }
+  void keyboard_profile(tab5::input::Profile p, std::string_view system = "snes", std::string_view rom_sha256 = {});
+  std::string keyboard_profile_status() const;
+  bool keyboard_test_mode() const { return keyboard_test_mode_.load(); }
+  void keyboard_test_mode(bool on);
+  GamepadState keyboard_gamepad_state() const;
+  /// Current gamepad state (merged from all input sources)
+  GamepadState gamepad_state();
+  /// gamepad_state() plus every button pressed since the last call, so a
+  /// tap shorter than the caller's polling period still registers (PICO-8
+  /// polls once per 30 fps frame). Presses are latched where touch and USB
+  /// gamepad updates arrive; the USB keyboard is only sampled here.
+  GamepadState gamepad_state_latched();
+  /// Buttons held by the USB link's test control (scripted input), merged
+  /// into gamepad_state() like any other input (GamepadState::buttons bits).
+  void set_remote_buttons(uint16_t buttons);
+  /// Latest touch data (in logical / landscape coordinates); a finger is
+  /// down when num_touch_points > 0 (btn_state is the GT911's home button)
+  TouchpadData touchpad_data() const {
+    std::lock_guard<std::mutex> lk(touch_gamepad_.mutex);
+    return touch_gamepad_.last;
+  }
+  /// A finger held by the USB link's test control (emulink tap / touch /
+  /// drag), in logical (landscape) coordinates; fingers = 0 lifts it. It
+  /// counts as a touch everywhere: touchpad_data(), the touch virtual
+  /// gamepad, touch_pointer() and the LVGL menus.
+  void set_remote_touch(uint8_t fingers, uint16_t x, uint16_t y);
+  /// A finger used as a pointer (logical coordinates); fingers = 0: none
+  struct TouchPoint {
+    uint8_t fingers{0}; ///< fingers on the screen (2 or more: a right click, for games that want one)
+    int x{0};
+    int y{0};
+  };
+  /// The first finger on the screen, or with `skip_gamepad` the first one not
+  /// on the touch virtual gamepad's zones (a game that is driven by the touch
+  /// pad and also wants a pointer, e.g. mouse look in Dark Forces)
+  TouchPoint touch_pointer(bool skip_gamepad) const;
+  /// A point on the screen in the running game's frame (width x height),
+  /// which is drawn at display_size(), centered; clamped to the frame
+  std::pair<int, int> screen_to_frame(int x, int y, int width, int height) const;
+  /// And back: a point of the running game's frame (width x height) on the
+  /// screen (the middle of its pixel)
+  std::pair<int, int> frame_to_screen(int x, int y, int width, int height) const;
+  /// True once if the user asked for the in-game menu (BOOT button, or the
+  /// touch hot-corner). Reading it clears the request.
+  bool menu_requested() { return menu_requested_.exchange(false); }
+  void request_menu(){menu_requested_=true;}
+  bool video_frame_available(const void *frame);
+  void drain_video();
+  void wait_menu_input_release();
+
+  /////////////////////////////////////////////////////////////////////////////
+  // USB host: HID keyboard / mouse on the USB-A port (hubs supported)
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Start the USB host library and the HID class driver. Not fatal when it
+  /// fails (the touch controls keep working).
+  bool initialize_usb_host();
+  /// Keyboard state: bitmap over HID usage IDs (0..255, incl. the modifiers
+  /// at 0xE0..0xE7). Bit (usage & 7) of keys[usage >> 3].
+  struct KeyboardState {
+    uint8_t keys[32];
+  };
+  KeyboardState keyboard_state() const;
+  struct MouseState {
+    int dx{0};          ///< motion accumulated since the last take_mouse_motion()
+    int dy{0};
+    int wheel{0};
+    uint8_t buttons{0}; ///< bit0 left, bit1 right, bit2 middle
+  };
+  /// Current buttons and the pending (not yet taken) motion
+  MouseState mouse_state() const;
+  /// Return and clear the accumulated mouse motion
+  MouseState take_mouse_motion();
+  bool usb_keyboard_present() const { return usb_keyboards_ > 0; }
+  bool usb_mouse_present() const { return usb_mice_ > 0; }
+  /// Generic HID gamepads (decoded with the hid-rp report map, see usb_hid.cpp)
+  /// are merged into gamepad_state(); select+start opens the pause menu.
+  bool usb_gamepad_present() const { return usb_gamepads_ > 0; }
+  /// The gamepad's sticks (zeros without a gamepad)
+  GamepadAxes gamepad_axes() const;
+  /// The USB gamepad's buttons alone (gamepad_state() also merges the touch
+  /// pad and the keyboard-as-gamepad keys)
+  GamepadState usb_gamepad_state() const;
+  /// The touch virtual gamepad alone
+  GamepadState touch_gamepad_state() const;
+  /// LVGL keypad input device driven by the gamepad (and a USB keyboard's
+  /// arrows / enter / escape): d-pad = focus prev/next (left/right adjust a
+  /// focused slider / dropdown), A = enter, B = escape. Menus attach their
+  /// lv_group to it (lv_indev_set_group) when shown.
+  lv_indev_t *keypad_indev() const { return keypad_indev_; }
+  /// The one lock for LVGL (built without LV_USE_OS, so it is not
+  /// thread-safe): the launcher's and the pause menu's timers and their
+  /// event-manager callbacks (volume) all touch it from different tasks.
+  static std::recursive_mutex &lvgl_mutex() {
+    static std::recursive_mutex m;
+    return m;
+  }
+  /// Stop the USB host library (keyboard / mouse stop working).
+  void deinitialize_usb_host();
+  bool is_usb_host_enabled() const { return usb_hid_ != nullptr; }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // The composite USB device on the USB-C port
+  //
+  // - CDC: the console (stdout is routed there, teed to UART0). The
+  //   USB-Serial-JTAG console is parked meanwhile (it shares the pins).
+  // - vendor (WebUSB): a framed byte stream for the link services (OTA, core
+  //   dump, system, test control): set_vendor_rx() / vendor_write().
+  // - MSC: the SD card as a USB drive. The device owns the card (mounted at
+  //   mount_point) until it is handed to the PC with initialize_usb_msc();
+  //   while the PC has it nothing on the device may use /sdcard (the GUI shows
+  //   a "USB drive" mode and reloads the ROM list afterwards).
+  // The USB host (USB-A jack) runs on the other (high-speed) controller.
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Start the composite device (after initialize_sdcard()).
+  bool initialize_usb_device();
+  bool is_usb_device_enabled() const { return usb_device_ != nullptr; }
+  /// Bytes received on the vendor interface (TinyUSB task context: do not
+  /// block; hand them to a DispatcherWorker). Set before the host talks.
+  void set_vendor_rx(std::function<void(std::span<const uint8_t>)> fn) { vendor_rx_ = std::move(fn); }
+  /// Send one frame on the vendor interface (all or nothing; serialized).
+  bool vendor_write(std::span<const uint8_t> frame);
+  /// Before a reboot into the ROM download mode: hand the USB-C pins back to
+  /// the USB-Serial-JTAG controller (the pin mapping survives the reset).
+  void usb_prepare_for_rom_download();
+  /// Hand the SD card to the PC as a USB drive
+  bool initialize_usb_msc();
+  /// Take the SD card back from the PC (mounted at mount_point again)
+  void deinitialize_usb_msc();
+  /// Give the USB-C pins back to the serial console if a previous run left
+  /// them on the OTG controller (called once at construction).
+  void usb_msc_restore_console();
+  /// Print the last crash's report (if any) to the console. The core dump
+  /// itself stays in flash for the link's core dump service.
+  static void dump_core_dump_to_console();
+  bool is_usb_msc_enabled() const { return usb_msc_host_has_card(); }
+  /// True while a PC holds the card (the volume is not mounted here)
+  bool usb_msc_host_has_card() const;
+  /// Called (under lvgl_mutex()) just before the card goes to the PC, from
+  /// whichever task hands it over: the USB link closes a file it is writing.
+  void set_before_sd_handover(std::function<void()> fn) { before_sd_handover_ = std::move(fn); }
+  bool button_state() const { return Bsp::get().button_state(); }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Battery
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool initialize_battery();
+  Bsp::BatteryStatus battery_status() const {
+    std::lock_guard<std::mutex> lock(battery_cache_mutex_);
+    return battery_cache_;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Video
+  //
+  // Games render into their own (native resolution) frame buffer, either 8bpp
+  // paletted or RGB565, and hand it to push_frame(). The video task converts
+  // it to RGB565, then uses the PPA to scale + rotate it directly into the
+  // MIPI-DSI panel's frame buffer at the requested display size (centered).
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool initialize_video();
+  std::vector<uint8_t> capture_lcd();
+  void touch_controls(bool enabled);
+  tab5::input::Profile touch_profile() const {return touch_profile_.load();}
+  void touch_profile(tab5::input::Profile profile) {touch_profile_=profile;touch_controls_dirty_=true;}
+  bool touch_controls() const { return touch_controls_enabled_.load(); }
+  size_t game_view_width() const { return touch_controls() ? lcd_width()-416 : lcd_width(); }
+  /// Fill the whole panel with black
+  void clear_screen();
+  /// Free the per-cart video buffers (conversion tile, frame_buffer0/1);
+  /// called when a cart ends. They are re-created on the next frame.
+  void release_video_buffers();
+  /// Set the on-screen size (in logical landscape pixels) the native frame is
+  /// scaled to. It is centered on the screen.
+  void display_size(size_t width, size_t height);
+  /// The size the frame is shown at (centered on the display)
+  std::pair<size_t, size_t> display_size() const { return {display_width_, display_height_}; }
+  /// Set the native (game) frame size; pitch is in pixels (defaults to width)
+  void native_size(size_t width, size_t height, int pitch = -1);
+  const uint16_t *palette() const { return palette_; }
+  /// Set the palette (RGB565) used to convert 8bpp frames; nullptr for RGB565
+  /// native frames
+  void palette(const uint16_t *palette, size_t size = 256);
+  /// Set the size of the optional 8bpp overlay (HUD) that can accompany a
+  /// paletted frame; pitch is in pixels (defaults to width). Width/height 0
+  /// disables the overlay. The overlay is drawn 1:1 (palette index 0 =
+  /// transparent), centered, on top of the native frame after the native frame
+  /// has been upscaled by the smallest integer factor that makes it at least as
+  /// tall as the overlay; the result is what the PPA then scales to the screen.
+  /// This keeps a HUD that is drawn at a higher resolution than the game's
+  /// world sharp instead of downsampling it into the world frame.
+  void overlay_size(size_t width, size_t height, int pitch = -1);
+  /// Queue a frame for display. The frame (and overlay, if any) must stay valid
+  /// until the next push_frame() call. Non-blocking; drops the frame if the
+  /// previous one is still being processed.
+  /// overlay_row_begin/end limit the overlay rows that may contain visible
+  /// pixels (rows outside are skipped without being read).
+  void push_frame(const void *frame, const void *overlay = nullptr, size_t overlay_row_begin = 0,
+                  size_t overlay_row_end = SIZE_MAX);
+  /// Video task timing since the last call (accumulated over frames).
+  struct VideoStats {
+    uint64_t convert_us{0}; ///< palette conversion / upscale / overlay
+    uint64_t blit_us{0};    ///< PPA scale + rotate into the panel buffer
+    uint32_t frames{0};
+    uint32_t tiles{0};
+  };
+  VideoStats video_stats(bool reset = true);
+  /// True if no pushed frame is waiting for the video task, i.e. a frame
+  /// pushed now replaces nothing (emulators skip rendering frames that could
+  /// not be shown).
+  bool frame_slot_free() const;
+  /// Frames push_frame() replaced before the video task took them (monotonic)
+  uint32_t frames_dropped() const { return frames_dropped_.load(std::memory_order_relaxed); }
+  /// Frames the video task presented, and the CPU cycles it spent on them
+  /// (monotonic; esp-box-emu's [genesis perf] report reads per-window deltas)
+  uint32_t frames_blitted() const { return frames_blitted_.load(std::memory_order_relaxed); }
+  uint32_t blit_cycles() const { return blit_cycles_.load(std::memory_order_relaxed); }
+  /// Block until the previously pushed frame has been presented
+  void wait_frame();
+  VideoSetting video_setting() const { return video_setting_; }
+  void video_setting(VideoSetting setting) { video_setting_ = setting; }
+  /// Native frame size currently configured
+  std::pair<size_t, size_t> native_size() const { return {native_width_, native_height_}; }
+  /// Two RGB565 frame buffers emulator cores can render into and hand to
+  /// push_frame() alternately (esp-box-emu convention). Sized for the largest
+  /// native emulator frame (FRAME_BUFFER_PIXELS), allocated on first use.
+  static constexpr size_t FRAME_BUFFER_PIXELS = 320 * 240;
+  uint8_t *frame_buffer0();
+  uint8_t *frame_buffer1();
+
+protected:
+  Tab5Emu();
+
+  bool has_palette() const { return palette_ != nullptr; }
+  bool video_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
+  bool ensure_tile_buffer();
+  struct Layout {
+    ppa_srm_rotation_angle_t angle;
+    bool swap; ///< 90/270: landscape x maps to panel y and vice versa
+    float scale_x, scale_y;
+    uint32_t out_w, out_h; ///< scaled size in landscape (logical) pixels
+    uint32_t off_x, off_y; ///< panel (native) offset of the centered picture
+  };
+  Layout layout() const;
+  int rotation_{0}; // the LVGL display rotation, read in native_size()
+  /// Convert staging rect [x0,x0+tw)x[y0,y0+th) into the tile buffer
+  void convert_tile(const void *frame, const void *overlay, size_t ov_r0, size_t ov_r1, size_t x0, size_t y0,
+                    size_t tw, size_t th);
+  /// PPA the tile buffer (tw x th) to its place on the panel
+  bool blit_tile(const Layout &lo, size_t x0, size_t y0, size_t tw, size_t th);
+  /// integer factor the native frame is upscaled by in the staging buffer
+  size_t staging_scale() const;
+  size_t staging_width() const { return native_width_ * staging_scale(); }
+  size_t staging_height() const { return native_height_ * staging_scale(); }
+
+  struct VideoFrame {
+    const void *frame;
+    const void *overlay;
+    size_t overlay_row_begin;
+    size_t overlay_row_end;
+  };
+  void *dpi_frame_buffer();
+  std::atomic<int64_t> last_input_us_{0};
+  std::atomic<unsigned> idle_seconds_{0};
+  std::atomic<float> desired_brightness_{75};
+  std::atomic<bool> game_active_{false},idle_in_game_{false},touch_held_{false};
+  std::atomic<bool> screen_sleeping_{false},wake_block_{false};
+  void draw_touch_controls();
+  std::atomic<tab5::input::Profile> touch_profile_{tab5::input::Profile::Snes};
+  std::atomic<bool> touch_controls_enabled_{false},touch_controls_dirty_{true};
+  uint16_t controls_last_buttons_{0xffff};
+  mutable std::recursive_mutex video_frame_mutex_;
+  std::mutex video_queue_mutex_;
+  tab5::video::Leases video_leases_;
+  void release_video_frame(const void *frame);
+  void on_touch(const TouchpadData &data);
+  // the touch virtual gamepad's zone at (x, y): presses its button(s) in
+  // `state`; false where there is none
+  bool touch_zone(int x, int y, GamepadState &state, bool &menu) const;
+  void update_touch_locked();
+  static void remote_pointer_read(lv_indev_t *indev, lv_indev_data_t *data);
+
+  // touch virtual gamepad
+  struct TouchGamepad {
+    static constexpr size_t kMaxPoints = 5;
+    mutable std::mutex mutex;
+    TouchpadData screen{};   // the touch screen's primary finger
+    std::array<std::pair<int, int>, kMaxPoints> points{}; // and all of its fingers
+    size_t num_points{0};
+    TouchPoint remote{};     // the link's test control's finger
+    TouchpadData last{};     // what touchpad_data() reports (remote over screen)
+    GamepadState state{};
+    bool menu_down{false};
+  } touch_gamepad_;
+  lv_indev_t *remote_pointer_indev_{nullptr};
+
+  // sdcard
+  sdmmc_card_t *sdcard_{nullptr};
+
+  // memory
+  uint8_t *romdata_{nullptr};
+  size_t romdata_size_{0};
+  static constexpr size_t ROM_ARENA_BYTES = 0x600000 + 0x200 + 0x8000; // snes9x MAX_ROM_SIZE + slack
+  uint8_t *rom_arena_{nullptr};
+  bool romdata_in_arena_{false};
+  uint8_t *small_object_slab_{nullptr};
+
+  // display
+  std::shared_ptr<espp::Display<Pixel>> display_;
+  std::atomic<bool> menu_requested_{false};
+  std::atomic<bool> menu_release_pending_{false};
+  bool usb_home_down_{false}; // protected by hid_mutex_
+
+  // audio
+  std::atomic<uint64_t> audio_source_frames_total_{0},audio_output_frames_total_{0},audio_dropped_total_{0},audio_max_gap_us_{0};
+  std::atomic<uint32_t> audio_generation_{0};
+  std::mutex audio_submit_mutex_;
+  int64_t audio_last_call_us_{0};
+  std::atomic<uint64_t> audio_clock_ticks_{0};
+  std::atomic<uint32_t> audio_source_rate_{48000},audio_clock_hz_{0};
+  uint32_t audio_max_wait_ms_{30};
+  uint32_t audio_phase_{0}; ///< resampler phase (16.16)
+  int16_t audio_last_[2]{0, 0}; ///< last source frame (resampler continuity)
+  std::vector<uint8_t> audio_resample_buf_;
+  uint64_t audio_bytes_sent_{0}, audio_bytes_dropped_{0}, audio_waits_{0};
+  int64_t audio_last_report_us_{0};
+
+  // usb hid (see usb_hid.cpp)
+  struct UsbHid;
+  UsbHid *usb_hid_{nullptr};
+  // the composite usb device (see usb_device.cpp)
+  std::unique_ptr<espp::UsbDevice> usb_device_;
+  std::function<void()> before_sd_handover_;
+  std::function<void(std::span<const uint8_t>)> vendor_rx_;
+  std::mutex vendor_tx_mutex_;
+  mutable std::mutex hid_mutex_;
+  mutable std::mutex battery_cache_mutex_;
+  Bsp::BatteryStatus battery_cache_{};
+  KeyboardState keyboard_{};
+  KeyboardState i2c_keyboard_{};
+  std::atomic<bool> i2c_keyboard_present_{false};
+  tab5::input::Bindings keyboard_bindings_{tab5::input::defaults(tab5::input::Profile::Snes)};
+  tab5::input::KeyGate keyboard_gate_;
+  std::string keyboard_profile_note_{"padroes"};
+  std::atomic<bool> keyboard_test_mode_{false};
+  KeyboardState action_keyboard_locked() const; // caller holds hid_mutex_
+  KeyboardState action_keyboard_state() const;
+  void publish_keyboard_locked(bool i2c, const KeyboardState &state);
+  void *keyboard_device_{nullptr};
+  void i2c_keyboard_task();
+  MouseState mouse_{};
+  std::atomic<int> usb_keyboards_{0};
+  std::atomic<int> usb_mice_{0};
+  std::atomic<int> usb_gamepads_{0};
+  GamepadState usb_gamepad_{};
+  std::atomic<uint16_t> press_latch_{0};
+  std::atomic<uint16_t> remote_buttons_{0}; // buttons pressed since gamepad_state_latched()
+  GamepadAxes usb_gamepad_axes_{};
+  lv_indev_t *keypad_indev_{nullptr};
+  uint32_t keypad_last_key_{0};
+  static void keypad_read(lv_indev_t *indev, lv_indev_data_t *data);
+  void on_hid_keyboard(const espp::hid_rp::KeyboardReport &report);
+  void on_hid_mouse(const espp::hid_rp::MouseReport &report);
+  void on_hid_gamepad_state(const GamepadState &state, bool menu, const GamepadAxes &axes = {});
+
+  // video
+  std::atomic<VideoSetting> video_setting_{VideoSetting::FIT};
+  std::unique_ptr<espp::Task> video_task_;
+  QueueHandle_t video_queue_{nullptr};
+  SemaphoreHandle_t frame_done_{nullptr};
+  ppa_client_handle_t ppa_client_{nullptr};
+  void *dpi_fb_{nullptr};
+  size_t dpi_fb_bytes_{0};
+  // conversion tile: the staging frame is converted and blitted in tiles
+  // small enough to live in internal RAM
+  static constexpr size_t TILE_BYTES = 64 * 1024;
+  uint16_t *tile_buf_{nullptr};
+  size_t tile_buf_bytes_{0};
+  uint8_t *frame_buffers_[2]{nullptr, nullptr};
+  VideoStats video_stats_{};
+  std::atomic<uint32_t> frames_dropped_{0};
+  std::atomic<uint32_t> frames_blitted_{0};
+  std::atomic<uint32_t> blit_cycles_{0};
+  size_t native_width_{0};
+  size_t native_height_{0};
+  size_t native_pitch_{0};
+  size_t overlay_width_{0};
+  size_t overlay_height_{0};
+  size_t overlay_pitch_{0};
+  size_t display_width_{lcd_width()};
+  size_t display_height_{lcd_height()};
+  const uint16_t *palette_{nullptr};
+  size_t palette_size_{256};
+};

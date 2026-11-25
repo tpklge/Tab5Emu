@@ -1,0 +1,32 @@
+{
+  "url": "https://github.com/mupen64plus/mupen64plus-rsp-cxd4.git",
+  "commit": "2a4a30094fdb9f593157cfec978c6560212752fd",
+  "scope": "Original sources; desktop plugin/window layer excluded. Deterministic build staging in tools/stage_n64.py.",
+  "files": {
+    "COPYING": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499",
+    "README.md": "d8eb9d3860ca8fdff01431f4c6b884f495b82bfdef2f78bfe9b57aae0894e328",
+    "lto.c": "c5e5bd7424946addd84f5cb069cd1436c639605a1f912eb1d16d387058ff3c7a",
+    "module.c": "dc8fb9a6831c5ca3e98cc78fd41aa7e88ce221482ea47f2755509db08af65cc2",
+    "module.h": "b09210d53615872665bf98cb3b064232d0007e951baa337dc6e07798ff0ba526",
+    "my_types.h": "c5d6e5a69c4f4b3da3f97c8f815f5a5d35a7ba67ab8bea6af88fdcd8998065d6",
+    "osal_dynamiclib.h": "f17e0134a3fcf4d972b5b6d9e37b04269bea2ddd9c3bf95077e9f5505089051d",
+    "osal_dynamiclib_unix.c": "9ed95429fa138b93955d7142434856172d1190ad24e014d12c1502bf37a5e4ff",
+    "osal_dynamiclib_win32.c": "c2fb1dafc52f5d4b1c6c7232e63ecc26e201c008370d28233147540a4547e554",
+    "rsp.h": "f320646e40981d3d80eb6c86a614713bad801747a5dccd6d2b1755d11c52b929",
+    "su.c": "635b467d7e34a652b067e60a538b353728637dd911a3aa345be48463b5b27a24",
+    "su.h": "c41a7d069c81069abc4a7e67865933995c128db2899c3a8f2a6fa1a5662c5765",
+    "vu/add.c": "02749c3cb5629f912fba7305c04be7a69bc07b630fe7f61aab556d6c3d9ea08b",
+    "vu/add.h": "672a0eeae7bf406cd8b68879795a7b2a2b7f6e8f43d7df46ea9a25053d65122c",
+    "vu/divide.c": "c04b877020f0a440930784fe9c4d1f83fe420ffbd13dce092d9e223732e5c948",
+    "vu/divide.h": "9035da5b393232adaa8bb9076f3cfe493c9bcf91847dd6c340dfd9f07855a02e",
+    "vu/logical.c": "60683aa14df3aec7ad38875eea68fd4ea685b12ce97c8fd2e96fa27b15d13af0",
+    "vu/logical.h": "bdc41f52529df13c240441c95739f3e5d587f8cd10def805d78cd6d64b788eff",
+    "vu/multiply.c": "ca7e97e5d70e66b16e6687cc31f51ebe501622b77fc51c35a9cbcb4d104ec2b1",
+    "vu/multiply.h": "eef72ac7b0fe53204050da0314df492f8cc5f245f1ba4386771fef754b038cc5",
+    "vu/pack.h": "31c954e46899b3bb82fc1dfede411b94b71d91b1e3e42679ec2b4165b3b4873f",
+    "vu/select.c": "5a1418a7fdcd6f8fd2a748d58c654fb4a803e299c0456584df3a23d68b6e0429",
+    "vu/select.h": "1ee740dd82bbad7d133c96fe052415df902dcd527bb8d89b54211f57b7ccc443",
+    "vu/vu.c": "34403b1e40b9e49d429a6b22f90d2c75a8d204df9cd1d77f1da7f72beb7d2879",
+    "vu/vu.h": "aa4fe187d62524da84c23efdb4dd16443cd2ed197cb18784deea4d556c8ccc67"
+  }
+}

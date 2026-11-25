@@ -1,0 +1,1 @@
+N64 actual Mupen/CXD4/RDP: IPL3, Count/Compare wrap, ROM paging, PI/SP/SI/AI DMA, reused Joybus reads, RGB565, VI blank/unblank, EEPROM second boot and FlashRAM program/read/erase passed.

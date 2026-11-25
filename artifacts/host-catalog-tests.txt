@@ -1,0 +1,11 @@
+library: 2 games (catalog + discovery)
+library: catalog version/shape/limit rejected; scanning ROMs
+library: 2 games (catalog + discovery)
+library: catalog version/shape/limit rejected; scanning ROMs
+library: 2 games (catalog + discovery)
+library: 2 games (catalog + discovery)
+library: invalid UTF-8/JSON depth/NUL; scanning ROMs
+library: 2 games (catalog + discovery)
+library: invalid UTF-8/JSON depth/NUL; scanning ROMs
+library: 2 games (catalog + discovery)
+catalog: actual firmware parser, UTF-8, duplicate/traversal, bounds and discovery OK

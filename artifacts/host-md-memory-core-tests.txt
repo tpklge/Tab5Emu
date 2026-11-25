@@ -1,0 +1,1 @@
+Actual M68000: data and instruction fetch in all 32 RAM mirrors, big-endian longword lanes and 64 KiB wrap passed.

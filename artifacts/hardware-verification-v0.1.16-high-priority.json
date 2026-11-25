@@ -1,0 +1,353 @@
+{
+  "sha256": "c447f24b16f58063f2e6d8783e111bc1ced11587d8566b7fcebf5f2956d9b79f",
+  "elf_sha256": "10a794d128a4a34e2dbcedb3e367332454c907d6bf8d39f7c224333b45e13e54",
+  "image_bytes": 4007840,
+  "profile": "stable",
+  "uploaded": true,
+  "received_hash_verified": true,
+  "installed": true,
+  "booted": true,
+  "return_confirmed": true,
+  "physical_tests": true,
+  "reservation_bytes": 4063232,
+  "other_apps_and_layout_preserved": true,
+  "plan": {
+    "app_only": true,
+    "slot": 4,
+    "reservation_bytes": 4063232,
+    "other_apps_preserved": true,
+    "bootloader_replacement": false,
+    "partition_table_replacement": false
+  },
+  "tests": {
+    "storage_failures": {
+      "complete": true,
+      "elf_sha256": "10a794d128a4a34e2dbcedb3e367332454c907d6bf8d39f7c224333b45e13e54",
+      "fixture_sha256": "ab627e010bda9132328e5b2f69b5ec1c98f19a5a45737a9bce1dc4553d03d234",
+      "slot": 4,
+      "save_error": "Falha ao salvar estado. Confira cartao e espaco livre.",
+      "previous_state_preserved": true,
+      "load_error": "Falha ao carregar estado. Arquivo invalido ou erro de leitura.",
+      "valid_load_clears_error": true,
+      "quit_error": "Falha ao gravar save. Saida cancelada; confira cartao e espaco livre.",
+      "previous_battery_preserved": true,
+      "launcher_error": "Falha ao gravar save. Retorno ao Launcher cancelado.",
+      "retry_persists_battery": true,
+      "disposable_files_removed": true
+    },
+    "gb_rom_validation": {
+      "complete": true,
+      "elf_sha256": "10a794d128a4a34e2dbcedb3e367332454c907d6bf8d39f7c224333b45e13e54",
+      "fixture_sha256": "b17acdc178031b2684553a43217b3a1741285c0f2db520d5aef048d238c326db",
+      "refusals": [
+        {
+          "case": "short_header",
+          "message": "ROM GB/GBC truncada: cabecalho incompleto.",
+          "returned_to_library": true
+        },
+        {
+          "case": "missing_banks",
+          "message": "ROM GB/GBC truncada: faltam bancos declarados no cabecalho.",
+          "returned_to_library": true
+        },
+        {
+          "case": "unsupported_mapper",
+          "message": "Mapper GB/GBC ainda nao suportado por este nucleo.",
+          "returned_to_library": true
+        },
+        {
+          "case": "unsupported_geometry",
+          "message": "Tamanho de ROM GB/GBC nao suportado por este nucleo.",
+          "returned_to_library": true
+        },
+        {
+          "case": "invalid_ram",
+          "message": "Tamanho de RAM GB/GBC invalido no cabecalho.",
+          "returned_to_library": true
+        }
+      ],
+      "original_rom_restored": true
+    },
+    "sram": [
+      {
+        "system": "gb",
+        "rom_sha256": "b17acdc178031b2684553a43217b3a1741285c0f2db520d5aef048d238c326db",
+        "boots": [
+          {
+            "counter": 28,
+            "loaded_state": false,
+            "saved_state": true,
+            "frames_before_quit": 23
+          },
+          {
+            "counter": 29,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 23
+          },
+          {
+            "counter": 28,
+            "loaded_state": true,
+            "saved_state": false,
+            "frames_before_quit": 23
+          },
+          {
+            "counter": 29,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 23
+          }
+        ],
+        "complete": true,
+        "normal_save_survives_cold_core_init": true,
+        "state_restores_sram": true,
+        "previous_distinct_generation_preserved": true,
+        "recovery_not_repeated": "existing rejected fixture preserved",
+        "invalid_state_rejected": true,
+        "invalid_state_fixture_removed": true
+      },
+      {
+        "system": "gbc",
+        "rom_sha256": "eb25bcf2d6ab19605e70572ee80595e2f4f5704e037bc82290a33a435c92acec",
+        "boots": [
+          {
+            "counter": 23,
+            "loaded_state": false,
+            "saved_state": true,
+            "frames_before_quit": 20
+          },
+          {
+            "counter": 24,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 22
+          },
+          {
+            "counter": 23,
+            "loaded_state": true,
+            "saved_state": false,
+            "frames_before_quit": 23
+          },
+          {
+            "counter": 24,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 22
+          }
+        ],
+        "complete": true,
+        "normal_save_survives_cold_core_init": true,
+        "state_restores_sram": true,
+        "previous_distinct_generation_preserved": true,
+        "recovery_not_repeated": "existing rejected fixture preserved",
+        "invalid_state_rejected": true,
+        "invalid_state_fixture_removed": true
+      },
+      {
+        "system": "snes",
+        "rom_sha256": "8d54cd75ecfecb2cb3a05da92ee284da6b6f92061af1bc987b8a4a3e13d19e16",
+        "boots": [
+          {
+            "counter": 27,
+            "loaded_state": false,
+            "saved_state": true,
+            "frames_before_quit": 29
+          },
+          {
+            "counter": 28,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 19
+          },
+          {
+            "counter": 27,
+            "loaded_state": true,
+            "saved_state": false,
+            "frames_before_quit": 18
+          },
+          {
+            "counter": 28,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 19
+          }
+        ],
+        "complete": true,
+        "normal_save_survives_cold_core_init": true,
+        "state_restores_sram": true,
+        "previous_distinct_generation_preserved": true,
+        "recovery_not_repeated": "existing rejected fixture preserved",
+        "invalid_state_rejected": true,
+        "invalid_state_fixture_removed": true
+      }
+    ],
+    "gba": {
+      "complete": true,
+      "elf_sha256": "10a794d128a4a34e2dbcedb3e367332454c907d6bf8d39f7c224333b45e13e54",
+      "jit_activation_rejected": true,
+      "gba_persistence": {
+        "firmware": "0.1.16",
+        "initial": {
+          "counter_units": 6,
+          "marker": [
+            120,
+            110
+          ],
+          "marker_color": 65503
+        },
+        "diagonal": {
+          "counter_units": 6,
+          "marker": [
+            132,
+            98
+          ],
+          "marker_color": 65503
+        },
+        "button_a": {
+          "counter_units": 6,
+          "marker": [
+            132,
+            98
+          ],
+          "marker_color": 1984
+        },
+        "incremented": {
+          "counter_units": 7,
+          "marker": [
+            132,
+            98
+          ],
+          "marker_color": 65503
+        },
+        "second_increment": {
+          "counter_units": 8,
+          "marker": [
+            132,
+            98
+          ],
+          "marker_color": 65503
+        },
+        "state_restored": {
+          "counter_units": 7,
+          "marker": [
+            132,
+            98
+          ],
+          "marker_color": 65503
+        },
+        "battery": {
+          "size": 131072,
+          "first_two_bytes": "5426",
+          "sha256": "25ec8cb1a6b6e74a4cdcbc040d6b9bcff6b22c3284db31c24ccd09a5baaf3024"
+        },
+        "savestate_preserves_latest_sram": true,
+        "fresh_boot_battery": {
+          "counter_units": 8,
+          "marker": [
+            120,
+            110
+          ],
+          "marker_color": 65503
+        },
+        "previous_distinct_generation_preserved": true,
+        "backup_valid": true
+      }
+    },
+    "compatibility": {
+      "firmware": "0.1.16",
+      "elf_sha256": "10a794d128a4a34e2dbcedb3e367332454c907d6bf8d39f7c224333b45e13e54",
+      "complete": true,
+      "rtc": {
+        "clock_day": 1,
+        "clock_seconds": 40,
+        "carry": 1,
+        "latched_registers": [
+          40,
+          43,
+          1,
+          1,
+          128
+        ],
+        "offline_advance_seconds": 5
+      },
+      "mbc2": {
+        "nibble_write": 11,
+        "mirror_read": 11,
+        "zero_bank_alias": 7,
+        "container_bytes": 8192
+      },
+      "md": {
+        "rom_sha256": "7910847b8b4a7616b064d2dfb69e0d6582b477fb536613ea490695de6f8716b3",
+        "six_button_snapshot": "1310701f",
+        "mode_start_reaches_guest": true,
+        "battery_bytes": 8192
+      },
+      "state_keeps_current_controller_mode_both_directions": true,
+      "controller_state_disposable_slot": 1,
+      "smd": {
+        "rom_sha256": "505e5dc513ecad10646257bb0d94c039cae1972b853b37d24eabf7d2a93c1527",
+        "six_button_snapshot": "1310701f",
+        "mode_start_reaches_guest": true,
+        "battery_bytes": 8192
+      }
+    },
+    "return": {
+      "complete": true,
+      "elf_sha256": "10a794d128a4a34e2dbcedb3e367332454c907d6bf8d39f7c224333b45e13e54",
+      "launcher_version": "0.8.0-rc.2",
+      "native_usb_enumerated_before_console_open": true,
+      "web_inspection_repeated": false,
+      "web_unavailable": "Wi-Fi not ready after one saved-network retry; no radio/config changes made.",
+      "apps_and_layout_unchanged_at_install": true,
+      "final_state": "menu",
+      "final_coredump_bytes": 0,
+      "gba_cpu_requested": 0,
+      "gba_cpu_limits": [
+        0,
+        0
+      ]
+    },
+    "host": {
+      "python": 42,
+      "cpp_suites": 9,
+      "c_suites": 2,
+      "sanitizers": [
+        "ASan",
+        "UBSan"
+      ],
+      "passed": true
+    },
+    "stable_artifact_gate": {
+      "passed": true,
+      "jit_compiled": false,
+      "heap_diagnostics_compiled": false,
+      "same_reservation": true
+    },
+    "ci": {
+      "workflow": "Paludo stable app-only",
+      "local_build_host_tests_yaml_validation": true,
+      "github_actions_run": false
+    },
+    "ui_error_text_verified_via_usb_with_pause_open": true,
+    "ui_error_label_visually_checked": false,
+    "final_state": "menu",
+    "final_coredump_bytes": 0
+  },
+  "limitations": [
+    "RV32/JIT heap corruption remains known; backend disabled and memory management unchanged; diagnostics/tests/dumps preserved.",
+    "GB allocation failures and FILE I/O failures were injected on host; physical SD removal/full-card/power-loss coverage remains pending.",
+    "Pause error strings and state checked over USB; no visual inspection of the new label. Screenshot API unavailable while paused.",
+    "GitHub Actions was not run remotely; workflow build/test/package commands validated locally.",
+    "Two physical USB pads, A164 hotplug/rollover and broader game/audio compatibility remain pending."
+  ],
+  "excluded_test_attempts": [
+    {
+      "report": "stable-high-priority-storage.local.json",
+      "reason": "Test attempted a screenshot while paused; API refused it. Disposable data cleaned; corrected test passed."
+    },
+    {
+      "report": "stable-high-priority-return.local.json",
+      "reason": "Launcher Wi-Fi unavailable after one reconnect attempt. Native USB return and boot passed separately; app/layout equality was checked at installation."
+    }
+  ]
+}

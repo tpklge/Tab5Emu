@@ -1,0 +1,89 @@
+{
+  "complete": true,
+  "elf_sha256": "884954de93057637d15b8101bf3680870ede738b12711e3f11dbe6b8d6833ade",
+  "fixture_sha256": "ab627e010bda9132328e5b2f69b5ec1c98f19a5a45737a9bce1dc4553d03d234",
+  "jit_activation_rejected": true,
+  "tone_window": {
+    "backend": "gpsp-interpreter",
+    "source": "owned 0BSD ~440 Hz tone",
+    "seconds": 20.035446499998216,
+    "sink_delta": {
+      "blocks": 1203,
+      "partial_blocks": 0,
+      "empty_blocks": 0,
+      "missing_frames": 0,
+      "write_errors": 0
+    },
+    "zero_missing_frames": true,
+    "acoustic_measurement": false
+  },
+  "pause_stops_producer": true,
+  "max_submit_gap_after_resume_us": 21997,
+  "persistence": {
+    "firmware": "0.1.16",
+    "initial": {
+      "counter_units": 7,
+      "marker": [
+        120,
+        110
+      ],
+      "marker_color": 65503
+    },
+    "diagonal": {
+      "counter_units": 7,
+      "marker": [
+        132,
+        98
+      ],
+      "marker_color": 65503
+    },
+    "button_a": {
+      "counter_units": 7,
+      "marker": [
+        132,
+        98
+      ],
+      "marker_color": 1984
+    },
+    "incremented": {
+      "counter_units": 8,
+      "marker": [
+        132,
+        98
+      ],
+      "marker_color": 65503
+    },
+    "second_increment": {
+      "counter_units": 9,
+      "marker": [
+        132,
+        98
+      ],
+      "marker_color": 65503
+    },
+    "state_restored": {
+      "counter_units": 8,
+      "marker": [
+        132,
+        98
+      ],
+      "marker_color": 65503
+    },
+    "battery": {
+      "size": 131072,
+      "first_two_bytes": "5431",
+      "sha256": "8c132b251dc657ded4a31a2d7611ae52950e5ff5a552692bc785948108f2d030"
+    },
+    "savestate_preserves_latest_sram": true,
+    "fresh_boot_battery": {
+      "counter_units": 9,
+      "marker": [
+        120,
+        110
+      ],
+      "marker_color": 65503
+    },
+    "previous_distinct_generation_preserved": true,
+    "backup_valid": true
+  }
+}

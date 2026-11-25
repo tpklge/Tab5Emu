@@ -1,0 +1,387 @@
+{
+  "sha256": "ae73c4d6b72e4ac6d7a240456ec356e5144077d7c22098c046a5a7b36a9b00eb",
+  "uploaded": true,
+  "received_hash_verified": true,
+  "installed": true,
+  "booted": true,
+  "return_confirmed": true,
+  "physical_tests": true,
+  "tests": {
+    "firmware": "0.1.13",
+    "elf_sha256": "6cf9d28c934b3ac55309c481706ffb90d3846be145681589c8321c280aa542eb",
+    "hardware": {
+      "chip": "ESP32-P4",
+      "chip_revision": 103,
+      "cpu_mhz": 360,
+      "flash_size": 16777216,
+      "psram_size": 33554432,
+      "idf": "v6.1"
+    },
+    "slot": 4,
+    "bytes": 4027408,
+    "slot_margin": 35824,
+    "other_app_descriptors_unchanged": true,
+    "layout_sizes_unchanged": true,
+    "coredump_bytes": 0,
+    "user_state_slot_4_restored": true,
+    "normal_save_integrity": [
+      {
+        "system": "gb",
+        "rom_sha256": "b17acdc178031b2684553a43217b3a1741285c0f2db520d5aef048d238c326db",
+        "raw_bytes": 8192,
+        "journal_attests_both_generations": true,
+        "equal_size_corruption_detected": true,
+        "backup_recovered_by_guest": true,
+        "rejected_bytes_preserved": true
+      },
+      {
+        "system": "gbc",
+        "rom_sha256": "eb25bcf2d6ab19605e70572ee80595e2f4f5704e037bc82290a33a435c92acec",
+        "raw_bytes": 8192,
+        "journal_attests_both_generations": true,
+        "equal_size_corruption_detected": true,
+        "backup_recovered_by_guest": true,
+        "rejected_bytes_preserved": true
+      },
+      {
+        "system": "snes",
+        "rom_sha256": "8d54cd75ecfecb2cb3a05da92ee284da6b6f92061af1bc987b8a4a3e13d19e16",
+        "raw_bytes": 8192,
+        "journal_attests_both_generations": true,
+        "equal_size_corruption_detected": true,
+        "backup_recovered_by_guest": true,
+        "rejected_bytes_preserved": true
+      },
+      {
+        "system": "gba",
+        "rom_sha256": "ab627e010bda9132328e5b2f69b5ec1c98f19a5a45737a9bce1dc4553d03d234",
+        "raw_bytes": 131072,
+        "journal_attests_both_generations": true,
+        "equal_size_corruption_detected": true,
+        "backup_recovered_by_guest": true,
+        "rejected_bytes_preserved": true
+      },
+      {
+        "system": "genesis",
+        "rom_sha256": "ec7643d99287d7fd16eed01b1cb69bf2783ec676f199ef16a6c18e97feb197c2",
+        "raw_bytes": 8192,
+        "journal_attests_both_generations": true,
+        "equal_size_corruption_detected": true,
+        "backup_recovered_by_guest": true,
+        "rejected_bytes_preserved": true
+      }
+    ],
+    "sram_states": [
+      {
+        "system": "gb",
+        "rom_sha256": "b17acdc178031b2684553a43217b3a1741285c0f2db520d5aef048d238c326db",
+        "boots": [
+          {
+            "counter": 10,
+            "loaded_state": false,
+            "saved_state": true,
+            "frames_before_quit": 20
+          },
+          {
+            "counter": 11,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 23
+          },
+          {
+            "counter": 10,
+            "loaded_state": true,
+            "saved_state": false,
+            "frames_before_quit": 23
+          },
+          {
+            "counter": 11,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 23
+          }
+        ],
+        "complete": true,
+        "normal_save_survives_cold_core_init": true,
+        "state_restores_sram": true,
+        "previous_distinct_generation_preserved": true,
+        "recovery_not_repeated": "existing rejected fixture preserved",
+        "invalid_state_rejected": true,
+        "invalid_state_fixture_removed": true
+      },
+      {
+        "system": "gbc",
+        "rom_sha256": "eb25bcf2d6ab19605e70572ee80595e2f4f5704e037bc82290a33a435c92acec",
+        "boots": [
+          {
+            "counter": 6,
+            "loaded_state": false,
+            "saved_state": true,
+            "frames_before_quit": 20
+          },
+          {
+            "counter": 7,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 23
+          },
+          {
+            "counter": 6,
+            "loaded_state": true,
+            "saved_state": false,
+            "frames_before_quit": 23
+          },
+          {
+            "counter": 7,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 24
+          }
+        ],
+        "complete": true,
+        "normal_save_survives_cold_core_init": true,
+        "state_restores_sram": true,
+        "previous_distinct_generation_preserved": true,
+        "recovery_not_repeated": "existing rejected fixture preserved",
+        "invalid_state_rejected": true,
+        "invalid_state_fixture_removed": true
+      },
+      {
+        "system": "snes",
+        "rom_sha256": "8d54cd75ecfecb2cb3a05da92ee284da6b6f92061af1bc987b8a4a3e13d19e16",
+        "boots": [
+          {
+            "counter": 10,
+            "loaded_state": false,
+            "saved_state": true,
+            "frames_before_quit": 30
+          },
+          {
+            "counter": 11,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 19
+          },
+          {
+            "counter": 10,
+            "loaded_state": true,
+            "saved_state": false,
+            "frames_before_quit": 18
+          },
+          {
+            "counter": 11,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 18
+          }
+        ],
+        "complete": true,
+        "normal_save_survives_cold_core_init": true,
+        "state_restores_sram": true,
+        "previous_distinct_generation_preserved": true,
+        "recovery_not_repeated": "existing rejected fixture preserved",
+        "invalid_state_rejected": true,
+        "invalid_state_fixture_removed": true
+      }
+    ],
+    "megadrive": {
+      "complete": true,
+      "input_source": "guest 68000 instructions and scripted Start",
+      "rom_sha256": "ec7643d99287d7fd16eed01b1cb69bf2783ec676f199ef16a6c18e97feb197c2",
+      "baseline": 5,
+      "boots": [
+        {
+          "counter": 7,
+          "battery_sha256": "e271b69d26607afdebed744d5045267bead37e8ac930dce8807f55ef35c44593"
+        },
+        {
+          "counter": 8,
+          "battery_sha256": "5b42d5dc6e3eea2136a621840b0cd3c9dace57563fa4bc91abd325657b155151"
+        },
+        {
+          "counter": 7,
+          "battery_sha256": "e271b69d26607afdebed744d5045267bead37e8ac930dce8807f55ef35c44593"
+        },
+        {
+          "counter": 8,
+          "battery_sha256": "5b42d5dc6e3eea2136a621840b0cd3c9dace57563fa4bc91abd325657b155151"
+        }
+      ],
+      "start_guest_input": true,
+      "state_restored_cpu_video_sram": true,
+      "cold_init_battery": true,
+      "previous_distinct_backup": true,
+      "state_bytes": 155270,
+      "invalid_states_rejected": [
+        "truncated",
+        "checksum",
+        "rom_identity",
+        "record_schema"
+      ]
+    },
+    "gba": {
+      "complete": true,
+      "elf_sha256": "6cf9d28c934b3ac55309c481706ffb90d3846be145681589c8321c280aa542eb",
+      "firmware": "0.1.13",
+      "initial": {
+        "counter_units": 9,
+        "marker": [
+          120,
+          110
+        ],
+        "marker_color": 65503
+      },
+      "diagonal": {
+        "counter_units": 9,
+        "marker": [
+          132,
+          98
+        ],
+        "marker_color": 65503
+      },
+      "button_a": {
+        "counter_units": 9,
+        "marker": [
+          132,
+          98
+        ],
+        "marker_color": 1984
+      },
+      "incremented": {
+        "counter_units": 0,
+        "marker": [
+          132,
+          98
+        ],
+        "marker_color": 65503
+      },
+      "second_increment": {
+        "counter_units": 1,
+        "marker": [
+          132,
+          98
+        ],
+        "marker_color": 65503
+      },
+      "state_restored": {
+        "counter_units": 0,
+        "marker": [
+          132,
+          98
+        ],
+        "marker_color": 65503
+      },
+      "battery": {
+        "size": 131072,
+        "first_two_bytes": "5415",
+        "sha256": "646c7f23e884a4a583f56d02bd947ac8fe84c26c919cb56a4145109f18a4e302"
+      },
+      "savestate_preserves_latest_sram": true,
+      "fresh_boot_battery": {
+        "counter_units": 1,
+        "marker": [
+          120,
+          110
+        ],
+        "marker_color": 65503
+      },
+      "previous_distinct_generation_preserved": true,
+      "backup_valid": true
+    },
+    "audio_gb": {
+      "elf_sha256": "6cf9d28c934b3ac55309c481706ffb90d3846be145681589c8321c280aa542eb",
+      "interval_seconds": 31.43528704100754,
+      "clock_ratio": 1.0000762828030396,
+      "sink_delta": {
+        "blocks": 1886,
+        "partial_blocks": 0,
+        "empty_blocks": 0,
+        "missing_frames": 0,
+        "write_errors": 0
+      }
+    },
+    "touch": {
+      "elf_sha256": "6cf9d28c934b3ac55309c481706ffb90d3846be145681589c8321c280aa542eb",
+      "diagonal_changes_guest": true,
+      "touch_a_changes_guest": true,
+      "menu_opens_and_resumes": true,
+      "lcd_sha256": "a0b7da7853026c3dc7ade9610aa0f8f109e25a3802d0a472d637e29f97b62cbd"
+    },
+    "ui": {
+      "elf_sha256": "6cf9d28c934b3ac55309c481706ffb90d3846be145681589c8321c280aa542eb",
+      "search_touch_applies": true,
+      "favorites_toggle_filter": true,
+      "favorites_restored": true,
+      "recent_updated": true,
+      "menu_sleep_wake_only": true,
+      "game_does_not_sleep_default": true,
+      "game_sleep_optional": true,
+      "wake_did_not_increment_guest": true,
+      "second_touch_incremented_guest": true,
+      "stable_gb_gbc_restored": true
+    },
+    "covers": {
+      "elf_sha256": "6cf9d28c934b3ac55309c481706ffb90d3846be145681589c8321c280aa542eb",
+      "jpeg_displayed_red_pixels": 127418,
+      "cover_entries": 4,
+      "one_invalid_jpeg": true,
+      "switches": 20,
+      "reloads": 3,
+      "max_switch_status_seconds": 0.1899584170023445,
+      "no_panic": true
+    },
+    "usb_card_ownership": {
+      "elf_sha256": "6cf9d28c934b3ac55309c481706ffb90d3846be145681589c8321c280aa542eb",
+      "firmware_file_access_refused": true,
+      "launch_refused_while_host_owns_card": true,
+      "host_msc_detected_and_ejected": true,
+      "firmware_remounted": true,
+      "resource_sha256": "9cd0481a80eaee732011dfb5f4acf2d1c275c27c8d8e58d3ab7b2ca2a75e7b8c",
+      "no_panic": true
+    },
+    "pause_return": {
+      "firmware": "0.1.13",
+      "elf_sha256": "6cf9d28c934b3ac55309c481706ffb90d3846be145681589c8321c280aa542eb",
+      "before": {
+        "counter_units": 6,
+        "marker": [
+          120,
+          110
+        ],
+        "marker_color": 65503
+      },
+      "after_start": {
+        "counter_units": 7,
+        "marker": [
+          120,
+          110
+        ],
+        "marker_color": 65503
+      },
+      "pause_menu_open": true,
+      "native_usb_before_console": true,
+      "return_confirmed": true,
+      "battery_persisted_before_return": true,
+      "reset": "SW_RESET"
+    },
+    "host": {
+      "python_tests": 19,
+      "cpp_suites": 6,
+      "asan": true,
+      "ubsan": true
+    },
+    "theme_evidence": {
+      "physical_build": "0.1.12",
+      "elf_sha256": "860292237a1546527aec6a0b5013ab22b6e4ad12eb8d576df83b385ca21d9286",
+      "note": "Verified persisted dark widget colors and restored system theme in this prior build; not silently counted as a new theme test on 0.1.13."
+    }
+  },
+  "limitations": [
+    "N64 console games/VI/RSP/RDP/PIF/audio/persistence are not implemented; the separate profile is a CPU probe.",
+    "gpSP RV32 backend and controlled heavy-scene A/B remain pending.",
+    "Eight-key A164 rollover/ghosting, per-game remap hardware overrides, RTC/offline progression and EEPROM/Flash/mapper variants need further coverage.",
+    "No complete physical power-cut, SD-full or media-removal validation.",
+    "Legacy raw saves acquire SHA metadata on first flush; earlier corruption cannot be detected retrospectively.",
+    "Catalogue is bounded in RAM without a persistent streaming index."
+  ]
+}

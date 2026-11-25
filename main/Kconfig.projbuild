@@ -1,0 +1,53 @@
+menu "tab5-emu"
+
+    config TAB5_EMU_AUTOSTART_DELAY_MS
+        int "Auto-start the first game after this many ms (0 = off)"
+        default 0
+        help
+            Bring-up aid: launch the first entry of metadata.csv automatically
+            a little after boot, as if Play had been pressed.
+
+    config TAB5_EMU_AUTOSTART_MATCH
+        string "Auto-start the first game whose name or path contains this"
+        default ""
+        depends on TAB5_EMU_AUTOSTART_DELAY_MS > 0
+        help
+            Empty: the first entry of metadata.csv. A comma-separated list
+            launches each in turn when TAB5_EMU_AUTOQUIT_SECONDS is set.
+
+    config TAB5_EMU_AUTOQUIT_SECONDS
+        int "Test: quit each auto-started game after this many seconds (0 = off)"
+        default 0
+        depends on TAB5_EMU_AUTOSTART_DELAY_MS > 0
+        help
+            Quits the way the pause menu's Quit does, then auto-starts the
+            next game of TAB5_EMU_AUTOSTART_MATCH, round and round: a soak
+            test of launching and quitting the carts one after another.
+
+    config TAB5_EMU_AUTOQUIT_STATES
+        bool "Test: save and load a state through the pause menu before each quit"
+        default n
+        depends on TAB5_EMU_AUTOQUIT_SECONDS > 0
+        help
+            A third of the way into each auto-started game, open the pause
+            menu and press Save; two thirds in, open it again and press Load
+            (the same slot). Exercises the menu over a running game and each
+            cart's save states.
+
+    config TAB5_EMU_USB_MSC_AT_BOOT
+        bool "Test: turn the USB drive on right after boot"
+        default n
+        help
+            Development aid: enable USB mass storage (the SD card as a USB
+            drive) as soon as the GUI is up, without touching the screen.
+
+    config TAB5_EMU_GBA_CPU_IRAM
+        bool "GBA: ARM interpreter loop in internal RAM (74 KB)"
+        default n
+        help
+            Places gpSP's execute_arm() in internal RAM instead of running
+            it from PSRAM-XIP (see components/gba/linker.lf). Needs
+            CONFIG_ESP_SYSTEM_MEMPROT=n (the code lives in the data region)
+            and CONFIG_CACHE_L2_CACHE_128KB for the room.
+
+endmenu

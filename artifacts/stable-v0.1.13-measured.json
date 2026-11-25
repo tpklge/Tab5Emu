@@ -1,0 +1,155 @@
+{
+  "image_bytes": 4027408,
+  "sha256": "ae73c4d6b72e4ac6d7a240456ec356e5144077d7c22098c046a5a7b36a9b00eb",
+  "overlay_payload_bytes_by_core": {
+    "gba": 389632,
+    "snes": 398336,
+    "genesis": 777600,
+    "gbc": 66688
+  },
+  "overlay_shared_psram_bytes": 777600,
+  "resident_ui_code_bytes": 606848,
+  "sections": {
+    ".rtc.text": {
+      "size": 104,
+      "address": "0x50108018",
+      "type": "SHT_NOBITS"
+    },
+    ".rtc_noinit": {
+      "size": 276,
+      "address": "0x50108080",
+      "type": "SHT_NOBITS"
+    },
+    ".rtc.force_slow": {
+      "size": 36,
+      "address": "0x50108194",
+      "type": "SHT_PROGBITS"
+    },
+    ".rtc_reserved": {
+      "size": 24,
+      "address": "0x50108000",
+      "type": "SHT_NOBITS"
+    },
+    ".spm.text": {
+      "size": 174,
+      "address": "0x30100000",
+      "type": "SHT_PROGBITS"
+    },
+    ".spm.data": {
+      "size": 64,
+      "address": "0x301000b0",
+      "type": "SHT_PROGBITS"
+    },
+    ".iram0.text": {
+      "size": 111960,
+      "address": "0x4ff00000",
+      "type": "SHT_PROGBITS"
+    },
+    ".iram0.text_end": {
+      "size": 40,
+      "address": "0x4ff1b558",
+      "type": "SHT_NOBITS"
+    },
+    ".dram0.data": {
+      "size": 28274,
+      "address": "0x4ff1b580",
+      "type": "SHT_PROGBITS"
+    },
+    ".noinit": {
+      "size": 2,
+      "address": "0x4ff223f2",
+      "type": "SHT_NOBITS"
+    },
+    ".dram0.bss": {
+      "size": 33312,
+      "address": "0x4ff22400",
+      "type": "SHT_NOBITS"
+    },
+    ".dram1.data": {
+      "size": 0,
+      "address": "0x4ff40000",
+      "type": "SHT_PROGBITS"
+    },
+    ".dram1.bss": {
+      "size": 12096,
+      "address": "0x4ff40000",
+      "type": "SHT_NOBITS"
+    },
+    ".flash.text": {
+      "size": 1289204,
+      "address": "0x40000020",
+      "type": "SHT_PROGBITS"
+    },
+    ".flash_rodata_dummy": {
+      "size": 1310720,
+      "address": "0x40000020",
+      "type": "SHT_NOBITS"
+    },
+    ".flash.appdesc": {
+      "size": 256,
+      "address": "0x40140020",
+      "type": "SHT_PROGBITS"
+    },
+    ".flash.rodata": {
+      "size": 357668,
+      "address": "0x40140120",
+      "type": "SHT_PROGBITS"
+    },
+    ".flash.init_array": {
+      "size": 476,
+      "address": "0x40197644",
+      "type": "SHT_INIT_ARRAY"
+    },
+    ".flash.tdata": {
+      "size": 16,
+      "address": "0x40197820",
+      "type": "SHT_PROGBITS"
+    },
+    ".flash.tbss": {
+      "size": 36,
+      "address": "0x40197830",
+      "type": "SHT_NOBITS"
+    },
+    ".ext_ram.bss": {
+      "size": 454448,
+      "address": "0x48000000",
+      "type": "SHT_NOBITS"
+    },
+    ".ext_ram.data": {
+      "size": 112,
+      "address": "0x4806ef30",
+      "type": "SHT_NOBITS"
+    },
+    ".tab5_res": {
+      "size": 606848,
+      "address": "0x4806f000",
+      "type": "SHT_NOBITS"
+    },
+    ".tab5_ovl.gba": {
+      "size": 389632,
+      "address": "0x48103280",
+      "type": "SHT_NOBITS"
+    },
+    ".tab5_ovl.snes": {
+      "size": 398336,
+      "address": "0x48103280",
+      "type": "SHT_NOBITS"
+    },
+    ".tab5_ovl.genesis": {
+      "size": 777600,
+      "address": "0x48103280",
+      "type": "SHT_NOBITS"
+    },
+    ".tab5_ovl.gbc": {
+      "size": 66688,
+      "address": "0x48103280",
+      "type": "SHT_NOBITS"
+    },
+    ".flash.tab5_ovl_store": {
+      "size": 2239152,
+      "address": "0x40197830",
+      "type": "SHT_INIT_ARRAY"
+    }
+  },
+  "note": "Overlay payload already belongs to flash store: do not add it to image size twice. Runtime heap not measured."
+}

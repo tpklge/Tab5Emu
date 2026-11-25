@@ -1,0 +1,145 @@
+{
+  "format": "tab5-sm64-native-performance-v1",
+  "firmware": {
+    "project": "tab5-sm64",
+    "version": "0.1.0-native",
+    "image_bytes": 2396768,
+    "sha256": "9bb027a237da5430882bba87b0c99dbc740a8f24d51e482cfde7ad1acefef674",
+    "elf_sha256": "47a2c9a4f558988c2b48f5d31d4ba2bae36e78e70d150fe430fa78cd1f6d27a6",
+    "cores": [
+      {
+        "core": "sm64",
+        "file": "sm64-87d05dcff2ffddd2203dc69160fb8e48c9d84a9e0437d52797bd4d72c9849bb5.bin",
+        "bytes": 11455360,
+        "load_address": 1208857088,
+        "sha256": "87d05dcff2ffddd2203dc69160fb8e48c9d84a9e0437d52797bd4d72c9849bb5"
+      }
+    ]
+  },
+  "cpu_mhz": 360,
+  "scene": "Castle grounds: initial dialog dismissed, forward movement; first two seconds excluded",
+  "selected_resolution": [
+    80,
+    60
+  ],
+  "variants": [
+    {
+      "resolution": [
+        128,
+        96
+      ],
+      "seconds": 17.986242792016128,
+      "rendered_fps": 17.51338529355473,
+      "presented_fps": 17.51338529355473,
+      "logic_ticks_per_second": 30.022946217522392,
+      "reported_fps_range": [
+        14.7,
+        18.6
+      ],
+      "render_us_per_second": 460636.05922620255,
+      "audio_us_per_second": 73068.51215104078,
+      "coredump_bytes": 0
+    },
+    {
+      "resolution": [
+        80,
+        60
+      ],
+      "seconds": 18.034401707991492,
+      "rendered_fps": 23.177924433987393,
+      "presented_fps": 23.177924433987393,
+      "logic_ticks_per_second": 29.998222772218135,
+      "reported_fps_range": [
+        22.2,
+        24.3
+      ],
+      "render_us_per_second": 360901.5760758982,
+      "audio_us_per_second": 54816.9002779799,
+      "coredump_bytes": 0
+    }
+  ],
+  "audio_80": {
+    "source_rate": 16000,
+    "hardware_rate": 48000,
+    "dropped_bytes": 0
+  },
+  "limitations": [
+    "Only matching US SM64 ROM supported by native app",
+    "No guarantee of 20 FPS in opening, dialogs, other levels or other N64 games",
+    "Native audio synthesized at 16 kHz",
+    "Native savestates unavailable"
+  ],
+  "final_validation": {
+    "seconds": 18.04125695899711,
+    "rendered_fps": 22.61483226624805,
+    "presented_fps": 22.61483226624805,
+    "logic_ticks_per_second": 29.986824156961262,
+    "reported_fps_range": [
+      17.5,
+      24.1
+    ],
+    "coredump_bytes": 0,
+    "elf_sha256": "1fcc21c9fa51a628b0082eb87d457d39d4730bce3da13d44a43b71234a5092db",
+    "settings_restored_after_test": true
+  },
+  "final_firmware": {
+    "project": "tab5-sm64",
+    "version": "0.1.0-native",
+    "image_bytes": 2397296,
+    "sha256": "767f00c9ba940a0a86c1d565904ca845f4fa109814b0ac336bff095cdea4a8ca",
+    "elf_sha256": "1fcc21c9fa51a628b0082eb87d457d39d4730bce3da13d44a43b71234a5092db",
+    "cores": [
+      {
+        "core": "sm64",
+        "file": "sm64-3b3f6b7dca44c2126c4fced0e6938f53dbbe8cf6d830ca011f0f469572dc98e6.bin",
+        "bytes": 11455360,
+        "load_address": 1208857088,
+        "sha256": "3b3f6b7dca44c2126c4fced0e6938f53dbbe8cf6d830ca011f0f469572dc98e6"
+      }
+    ]
+  },
+  "final_general_firmware": {
+    "project": "tab5-emu",
+    "version": "0.2.3-perf",
+    "image_bytes": 2447344,
+    "sha256": "3f7d63801fc8125d5b2eb979d10de9da347b27054a7306e4175ba0d6222e109b",
+    "elf_sha256": "15db71e0cbfc2d972cd0db94a2397fa1fc833fb59baf61993243601f84533a8d",
+    "cores": [
+      {
+        "core": "n64",
+        "file": "n64-cb21221f7039160b3ce61c45965da5f4ef140d6178a9f36c316b2fac1f80953e.bin",
+        "bytes": 501120,
+        "load_address": 1210183296,
+        "sha256": "cb21221f7039160b3ce61c45965da5f4ef140d6178a9f36c316b2fac1f80953e"
+      },
+      {
+        "core": "gba",
+        "file": "gba-84e164b9d0fd33d03e7498ab6892dcc7e4e6987b55061fe3c3ae032c2bdd9d32.bin",
+        "bytes": 380160,
+        "load_address": 1210183296,
+        "sha256": "84e164b9d0fd33d03e7498ab6892dcc7e4e6987b55061fe3c3ae032c2bdd9d32"
+      },
+      {
+        "core": "snes",
+        "file": "snes-3457fd245327070dc0fe0d243ca9cff2bf92df05203769ebbc34b5c06e874371.bin",
+        "bytes": 403200,
+        "load_address": 1210183296,
+        "sha256": "3457fd245327070dc0fe0d243ca9cff2bf92df05203769ebbc34b5c06e874371"
+      },
+      {
+        "core": "genesis",
+        "file": "genesis-167100dbb8bbd425b9fd6cb722fab55ac79566c2d62fccf498e586be61ba2ff6.bin",
+        "bytes": 762880,
+        "load_address": 1210183296,
+        "sha256": "167100dbb8bbd425b9fd6cb722fab55ac79566c2d62fccf498e586be61ba2ff6"
+      },
+      {
+        "core": "gbc",
+        "file": "gbc-2054e0fdcb772d99d2f1416015456189b6017b5da21938cb6c7825291998d9de.bin",
+        "bytes": 70912,
+        "load_address": 1210183296,
+        "sha256": "2054e0fdcb772d99d2f1416015456189b6017b5da21938cb6c7825291998d9de"
+      }
+    ]
+  }
+}

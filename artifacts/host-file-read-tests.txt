@@ -1,0 +1,1 @@
+Checked reads: partial/EIO/seek/EOF/close/size/OOM failures preserve output; all FILEs closed.

@@ -1,0 +1,32 @@
+{
+  "format": "tab5-font-resources-v1",
+  "generator": "lv_font_conv@1.5.3",
+  "source_sha256": "421f26b23e2be6b98373d32acd3cb2897b154d4bf0a77d26534ce476e4cbed53",
+  "license": "OFL-1.1",
+  "fonts": [
+    {
+      "pixels": 16,
+      "file": "tab5-latin-16.font",
+      "bytes": 11448,
+      "sha256": "9cd0481a80eaee732011dfb5f4acf2d1c275c27c8d8e58d3ab7b2ca2a75e7b8c"
+    },
+    {
+      "pixels": 20,
+      "file": "tab5-latin-20.font",
+      "bytes": 16260,
+      "sha256": "e20136f6ad797b5bd71e649ea11c715b40d7c62ad579f20ad8b4bec6c4ce0eff"
+    },
+    {
+      "pixels": 24,
+      "file": "tab5-latin-24.font",
+      "bytes": 22412,
+      "sha256": "d8b9105b4508d1422dee9231eb299c05b69386193145eca5c3ff64c973605e2b"
+    },
+    {
+      "pixels": 32,
+      "file": "tab5-latin-32.font",
+      "bytes": 37264,
+      "sha256": "03f23c1973bc8f5b5f3f53c3a37ca873f37e247756b9ed9d417efaa486787940"
+    }
+  ]
+}

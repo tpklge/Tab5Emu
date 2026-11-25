@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/DynaMight1124/retro-go",
+  "branch": "sm64",
+  "commit": "03271e74ee81105e124904475004e9852c8ff067",
+  "component": "sm64-go/components/sm64-funkey",
+  "integration": "Optional separate Launcher app; local ROM-derived assets only; software renderer 160x120 and overlay 320x240",
+  "rom_assets_distributed": false,
+  "rom_sha256": "17ce077343c6133f8c9f2d6d6d9a4ab62c8cd2aa57c40aea1f490b4c8bb21d91"
+}

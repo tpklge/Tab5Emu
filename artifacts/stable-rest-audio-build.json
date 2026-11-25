@@ -1,0 +1,9 @@
+{
+  "profile": "stable",
+  "image_bytes": 4024816,
+  "reservation_bytes": 4063232,
+  "sha256": "e54403bacf87022e2509984d41bb5210d93cf1e466bcdc4419bc3156ebf950af",
+  "jit_compiled": false,
+  "app_only": true,
+  "hardware_tested": false
+}

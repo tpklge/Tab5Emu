@@ -1,0 +1,13 @@
+{
+  "format": "tab5-n64-transfer-summary-v1",
+  "unique_games": 21,
+  "source_aliases": 24,
+  "bytes": 465567744,
+  "complete": true,
+  "all_destinations_readback_sha256_verified": true,
+  "roms_destination": "Tab5-Emu/roms/n64",
+  "source_files_preserved": true,
+  "catalog_previous_generations_backed_up": 1,
+  "index_invalid_entries": [],
+  "notes": "22 AppleDouble metadata entries were subsequently removed from the generated index; actual files and other games preserved. 21 supplied games plus one original 0BSD diagnostic ROM are visible."
+}

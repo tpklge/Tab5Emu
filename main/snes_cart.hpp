@@ -1,0 +1,104 @@
+#pragma once
+
+#include "cart.hpp"
+
+#if defined(ENABLE_SNES)
+#include "snes.hpp"
+#endif
+
+class SnesCart : public Cart {
+public:
+  // an emulator core: a state loads right after the game starts
+  virtual bool supports_resume() const override { return true; }
+  explicit SnesCart(const Cart::Config &config) : Cart(config) {
+    handle_video_setting();
+    init();
+  }
+  ~SnesCart() override {
+    logger_.info("~SnesCart()");
+    deinit();
+  }
+  void reset() override {
+    Cart::reset();
+#if defined(ENABLE_SNES)
+    reset_snes();
+#endif
+  }
+  void load() override {
+#if defined(ENABLE_SNES)
+    // (the base marks the state done: only once the core took it)
+    if (load_snes(get_save_path()))
+      Cart::load();
+#else
+    Cart::load();
+#endif
+  }
+  void save() override {
+#if defined(ENABLE_SNES)
+    if (save_snes(get_save_path(true)))
+      Cart::save();
+#else
+    Cart::save();
+#endif
+  }
+  void init() {
+#if defined(ENABLE_SNES)
+    init_snes(get_rom_filename()); // straight into the core's ROM arena
+    initialize_snes_storage(info_.content_hash);
+#endif
+  }
+  void deinit() {
+#if defined(ENABLE_SNES)
+    deinit_snes();
+#endif
+  }
+  bool run() override {
+#if defined(ENABLE_SNES)
+    run_snes_rom();
+#endif
+    return Cart::run();
+  }
+  bool loaded() const override {
+#if defined(ENABLE_SNES)
+    return snes_loaded();
+#else
+    return false;
+#endif
+  }
+  uint32_t game_frames() const override {
+#if defined(ENABLE_SNES)
+    return snes_frames();
+#else
+    return 0;
+#endif
+  }
+
+protected:
+  bool persist_before_exit() override {
+#if defined(ENABLE_SNES)
+    return flush_snes_battery();
+#else
+    return true;
+#endif
+  }
+  static constexpr size_t SNES_WIDTH = 256;
+  static constexpr size_t SNES_HEIGHT = 224;
+  void set_original_video_setting() override { display_original(SNES_WIDTH, SNES_HEIGHT); }
+  void set_fit_video_setting() override { display_fit(SNES_WIDTH, SNES_HEIGHT); }
+  void set_fill_video_setting() override { display_fill(); }
+  std::pair<size_t, size_t> get_video_size() const override {
+#if defined(ENABLE_SNES)
+    return get_snes_video_size();
+#else
+    return {SNES_WIDTH, SNES_HEIGHT};
+#endif
+  }
+  std::span<uint8_t> get_video_buffer() const override {
+#if defined(ENABLE_SNES)
+    return get_snes_video_buffer();
+#else
+    return {};
+#endif
+  }
+  std::string get_save_extension() const override { return "_snes.sav"; }
+};

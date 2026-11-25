@@ -1,0 +1,19 @@
+{
+  "info": {
+    "chip": "ESP32-P4",
+    "chip_revision": 103,
+    "idf": "v6.1",
+    "firmware": "0.1.15",
+    "elf_sha256": "25d8e5effabfadd3df5e233be22acfc2be91ffd64b7f71b66a8845f6c5277ba5",
+    "cpu_mhz": 360
+  },
+  "system_apply": true,
+  "game_apply_sha256": "ab627e010bda9132328e5b2f69b5ec1c98f19a5a45737a9bce1dc4553d03d234",
+  "game_override_precedence": true,
+  "conflict_refused_without_write": true,
+  "cancel_preserved_file": true,
+  "modal_blocks_underlying_touch_and_gamepad": true,
+  "reset_game_layer": true,
+  "reset_system_layer": true,
+  "complete": true
+}

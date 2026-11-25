@@ -1,0 +1,24 @@
+Num bytes allocated: 65110
+Num bytes allocated: 81494
+Num bytes allocated: 48726
+Num bytes allocated: 81494
+Num bytes allocated: 80166
+Num bytes allocated: 81494
+Num bytes allocated: 77398
+Num bytes allocated: 81494
+Num bytes allocated: 81438
+Num bytes allocated: 81494
+Num bytes allocated: 81102
+Num bytes allocated: 81494
+Num bytes allocated: 55280
+Num bytes allocated: 81494
+Num bytes allocated: 81238
+Num bytes allocated: 81494
+Num bytes allocated: 16
+Initialized. ROM@0x62d000096400
+loader: mbc.type=MBC_MBC1, mbc.romsize=2 (32K), mbc.ramsize=16 (128K)
+Num bytes allocated: 81494
+Initialized. ROM@0x62d000096400
+loader: mbc.type=MBC_MBC1, mbc.romsize=2 (32K), mbc.ramsize=16 (128K)
+Num bytes allocated: 81494
+GB: all eight allocation failures roll back; retry, SRAM OOM and max SRAM pass with no leaks.

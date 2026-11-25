@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "games": [
+    {
+      "id": "demo-livre",
+      "system": "gba",
+      "title": "Ação e exploração — demonstração",
+      "rom": "roms/gba/demo.gba",
+      "cover": "library/thumbnails/demo.jpg",
+      "description": "Exemplo com acentos; forneça sua própria ROM livre."
+    },
+    {
+      "id": "sem-capa",
+      "system": "gb",
+      "title": "Meu jogo sem capa",
+      "rom": "roms/gb/meu-jogo.gb"
+    }
+  ]
+}

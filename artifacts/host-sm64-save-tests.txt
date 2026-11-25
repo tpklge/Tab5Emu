@@ -1,0 +1,1 @@
+SM64 save conversion: valid blocks, endian fields, corrupt input and source preservation passed

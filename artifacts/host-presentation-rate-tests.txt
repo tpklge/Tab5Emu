@@ -1,0 +1,1 @@
+Presentation rate: wall-clock cadence, pause/resume and new-game reset passed

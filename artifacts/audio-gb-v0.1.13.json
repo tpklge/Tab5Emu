@@ -1,0 +1,12 @@
+{
+  "elf_sha256": "6cf9d28c934b3ac55309c481706ffb90d3846be145681589c8321c280aa542eb",
+  "interval_seconds": 31.43528704100754,
+  "clock_ratio": 1.0000762828030396,
+  "sink_delta": {
+    "blocks": 1886,
+    "partial_blocks": 0,
+    "empty_blocks": 0,
+    "missing_frames": 0,
+    "write_errors": 0
+  }
+}

@@ -1,0 +1,1 @@
+GBA preroll: PCM preserved, 50 ms at 32768 Hz, bounded capacity, timeline reset passed.

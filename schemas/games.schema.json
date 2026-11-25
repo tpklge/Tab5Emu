@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tab5-emu:games:1",
+  "title": "Tab5-Emu catálogo próprio v1",
+  "description": "O validador aplica também limites em bytes UTF-8, paths seguros, IDs únicos, arquivos e hashes. Até 64 MiB/100000 jogos usando o índice no SD; sem índice, o firmware usa o fallback de 1 MiB/2048 jogos.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "games"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "games": {
+      "type": "array",
+      "maxItems": 100000,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "system",
+          "title",
+          "rom"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,80}$"
+          },
+          "system": {
+            "enum": [
+              "snes",
+              "gb",
+              "gbc",
+              "gba",
+              "megadrive",
+              "n64"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1
+          },
+          "rom": {
+            "type": "string",
+            "maxLength": 240,
+            "minLength": 1
+          },
+          "cover": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "developer": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "publisher": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "year": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2100
+          },
+          "players": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "genre": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "maxLength": 80
+            }
+          },
+          "language": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "maxLength": 80
+            }
+          },
+          "tags": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "maxLength": 80
+            }
+          }
+        }
+      }
+    }
+  }
+}

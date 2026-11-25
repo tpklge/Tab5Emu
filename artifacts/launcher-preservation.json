@@ -1,0 +1,151 @@
+{
+  "apps_unchanged": true,
+  "layout_unchanged": true,
+  "flash_install_executed": false,
+  "apps_before": [
+    {
+      "slot": 0,
+      "label": "app0",
+      "name": "tab5_meshtastic_v2",
+      "version": "4ec97bf-dirty",
+      "descriptorValid": true
+    },
+    {
+      "slot": 1,
+      "label": "app1",
+      "name": "tab5gotchi",
+      "version": "0.1.0",
+      "descriptorValid": true
+    },
+    {
+      "slot": 2,
+      "label": "app2",
+      "name": "tab5gotchi",
+      "version": "0.2.1",
+      "descriptorValid": true
+    },
+    {
+      "slot": 3,
+      "label": "app3",
+      "name": "tabchat",
+      "version": "0.3.0",
+      "descriptorValid": true
+    }
+  ],
+  "apps_after": [
+    {
+      "slot": 0,
+      "label": "app0",
+      "name": "tab5_meshtastic_v2",
+      "version": "4ec97bf-dirty",
+      "descriptorValid": true
+    },
+    {
+      "slot": 1,
+      "label": "app1",
+      "name": "tab5gotchi",
+      "version": "0.1.0",
+      "descriptorValid": true
+    },
+    {
+      "slot": 2,
+      "label": "app2",
+      "name": "tab5gotchi",
+      "version": "0.2.1",
+      "descriptorValid": true
+    },
+    {
+      "slot": 3,
+      "label": "app3",
+      "name": "tabchat",
+      "version": "0.3.0",
+      "descriptorValid": true
+    }
+  ],
+  "layout_before": {
+    "sizes": [
+      1638400,
+      917504,
+      983040,
+      1572864,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "minimum": [
+      1638400,
+      917504,
+      983040,
+      1572864,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "launcher": 2031616,
+    "capacity": 8388608,
+    "data": 65536,
+    "unallocated": 6160384,
+    "boot": 131072
+  },
+  "layout_after": {
+    "sizes": [
+      1638400,
+      917504,
+      983040,
+      1572864,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "minimum": [
+      1638400,
+      917504,
+      983040,
+      1572864,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "launcher": 2031616,
+    "capacity": 8388608,
+    "data": 65536,
+    "unallocated": 6160384,
+    "boot": 131072
+  }
+}

@@ -1,0 +1,36 @@
+## main...origin/main
+ M components/boot_mgr/boot_mgr.c
+ M components/boot_mgr/include/boot_mgr.h
+ M components/installer/include/installer.h
+ M components/installer/installer.c
+ M components/storage/app_data.c
+ M components/storage/launcher_store.c
+ M components/ui/CMakeLists.txt
+ M components/ui/include/ui.h
+ M components/ui/ui.c
+ M components/ui/ui_home.c
+ M components/ui/ui_sd.c
+ M components/wifi/include/wifi_link.h
+ M components/wifi/wifi_link.c
+ M components/wifi/wifi_mgr.c
+ M docs/PROGRESS.md
+ M main/main.c
+ M novasfuncionalidades.md
+ M tests/app_data/test.c
+ M tests/boot_runtime/test.c
+ M tests/host_ui/CMakeLists.txt
+ M tests/host_ui/test_home.c
+ M tests/host_ui/test_sd.c
+ M tests/host_wifi/stubs/esp_err.h
+ M tests/host_wifi/test_wifi.c
+ M tests/installer/stubs/esp_err.h
+ M tests/installer/test.c
+ M tests/launcher_state/run.py
+ M tests/launcher_store/run.py
+ M tests/launcher_store/test.c
+ M tests/run_all.py
+ M tests/test_storage_host.py
+?? components/ui/ui_dispatch.c
+?? components/ui/ui_dispatch.h
+?? problwmas.md
+?? tests/host_ui/test_dispatch.c

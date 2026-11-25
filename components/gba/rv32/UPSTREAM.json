@@ -1,0 +1,15 @@
+{
+  "source": "https://github.com/Irak4t0n/HowBoyAdvance.git",
+  "commit": "d2ed7442e7fbca96146ce043ae127835fa7e4ce8",
+  "license": "GPL-2.0-or-later",
+  "files": [
+    "riscv/riscv_codegen.h",
+    "riscv/riscv_emit.h",
+    "riscv/riscv_stub.S"
+  ],
+  "local_changes": [
+    "Contiguous register file retained in internal BSS; MMU lifetime and cache synchronization adapted to this IDF. Current gpSP translator retains its deferred exit worklist.",
+    "C memory writes check RAM translation tags and issue SMC alerts.",
+    "Experimental single-access stubs debit live nonsequential wait-state tables by address and bus width. Full fetch/prefetch and block-transfer timing remains unvalidated."
+  ]
+}

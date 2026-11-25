@@ -1,0 +1,360 @@
+{
+  "sha256": "9c9ffdb457dccb96145a26283084f9769d44cbab1603bf97b762f35c5e36eb5d",
+  "uploaded": true,
+  "received_hash_verified": true,
+  "installed": true,
+  "booted": true,
+  "return_confirmed": true,
+  "physical_tests": true,
+  "tests": {
+    "firmware": "0.1.14",
+    "elf_sha256": "eea38372e6a1fa6e0b722e3d476d9d346c7210fd2b44f766b11504f178c454a2",
+    "hardware": {
+      "chip": "ESP32-P4",
+      "chip_revision": 103,
+      "cpu_mhz": 360,
+      "flash_size": 16777216,
+      "psram_size": 33554432,
+      "idf": "v6.1"
+    },
+    "slot": 4,
+    "bytes": 4026928,
+    "slot_margin": 36304,
+    "other_app_descriptors_unchanged": true,
+    "layout_sizes_unchanged": true,
+    "coredump_bytes": 0,
+    "user_state_slot_3_restored": true,
+    "preserved_state_file_sha256_unchanged": true,
+    "stable_gb_gbc_restored": true,
+    "menu_rom_count": 7,
+    "legacy_updater_guard": {
+      "menu": {
+        "firmware": "0.1.14",
+        "elf_sha256": "eea38372e6a1fa6e0b722e3d476d9d346c7210fd2b44f766b11504f178c454a2",
+        "state": "menu",
+        "error": "Atualize este app pelo Launcher do Paludo; updater antigo indisponivel",
+        "uptime_before_ms": 1938,
+        "uptime_after_ms": 2452,
+        "same_firmware_and_game": true,
+        "no_reset": true,
+        "game_progress": false
+      },
+      "game": {
+        "firmware": "0.1.14",
+        "elf_sha256": "eea38372e6a1fa6e0b722e3d476d9d346c7210fd2b44f766b11504f178c454a2",
+        "state": "game",
+        "error": "Atualize este app pelo Launcher do Paludo; updater antigo indisponivel",
+        "uptime_before_ms": 26459,
+        "uptime_after_ms": 26974,
+        "same_firmware_and_game": true,
+        "no_reset": true,
+        "game_progress": true
+      }
+    },
+    "gba": {
+      "rom_sha256": "ab627e010bda9132328e5b2f69b5ec1c98f19a5a45737a9bce1dc4553d03d234",
+      "scripted_usb_input": true,
+      "complete": true,
+      "legacy_guard": {
+        "firmware": "0.1.14",
+        "elf_sha256": "eea38372e6a1fa6e0b722e3d476d9d346c7210fd2b44f766b11504f178c454a2",
+        "state": "game",
+        "error": "Atualize este app pelo Launcher do Paludo; updater antigo indisponivel",
+        "uptime_before_ms": 26459,
+        "uptime_after_ms": 26974,
+        "same_firmware_and_game": true,
+        "no_reset": true,
+        "game_progress": true
+      },
+      "touch_before": {
+        "counter_units": 2,
+        "marker": [
+          120,
+          110
+        ],
+        "marker_color": 65503
+      },
+      "touch_after": {
+        "counter_units": 3,
+        "marker": [
+          120,
+          110
+        ],
+        "marker_color": 65503
+      },
+      "firmware": "0.1.14",
+      "initial": {
+        "counter_units": 3,
+        "marker": [
+          120,
+          110
+        ],
+        "marker_color": 65503
+      },
+      "diagonal": {
+        "counter_units": 3,
+        "marker": [
+          132,
+          98
+        ],
+        "marker_color": 65503
+      },
+      "button_a": {
+        "counter_units": 3,
+        "marker": [
+          132,
+          98
+        ],
+        "marker_color": 1984
+      },
+      "incremented": {
+        "counter_units": 4,
+        "marker": [
+          132,
+          98
+        ],
+        "marker_color": 65503
+      },
+      "second_increment": {
+        "counter_units": 5,
+        "marker": [
+          132,
+          98
+        ],
+        "marker_color": 65503
+      },
+      "state_restored": {
+        "counter_units": 4,
+        "marker": [
+          132,
+          98
+        ],
+        "marker_color": 65503
+      },
+      "battery": {
+        "size": 131072,
+        "first_two_bytes": "5419",
+        "sha256": "9fe3aad3a75a2a96d281b428e3ff06e862ea3847413902de8a92d0e6e6481487"
+      },
+      "savestate_preserves_latest_sram": true,
+      "fresh_boot_battery": {
+        "counter_units": 5,
+        "marker": [
+          120,
+          110
+        ],
+        "marker_color": 65503
+      },
+      "previous_distinct_generation_preserved": true,
+      "backup_valid": true
+    },
+    "sram_states": [
+      {
+        "system": "gb",
+        "rom_sha256": "b17acdc178031b2684553a43217b3a1741285c0f2db520d5aef048d238c326db",
+        "boots": [
+          {
+            "counter": 16,
+            "loaded_state": false,
+            "saved_state": true,
+            "frames_before_quit": 20
+          },
+          {
+            "counter": 17,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 23
+          },
+          {
+            "counter": 16,
+            "loaded_state": true,
+            "saved_state": false,
+            "frames_before_quit": 23
+          },
+          {
+            "counter": 17,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 22
+          }
+        ],
+        "complete": true,
+        "normal_save_survives_cold_core_init": true,
+        "state_restores_sram": true,
+        "previous_distinct_generation_preserved": true,
+        "recovery_not_repeated": "existing rejected fixture preserved",
+        "invalid_state_rejected": true,
+        "invalid_state_fixture_removed": true
+      },
+      {
+        "system": "gbc",
+        "rom_sha256": "eb25bcf2d6ab19605e70572ee80595e2f4f5704e037bc82290a33a435c92acec",
+        "boots": [
+          {
+            "counter": 11,
+            "loaded_state": false,
+            "saved_state": true,
+            "frames_before_quit": 20
+          },
+          {
+            "counter": 12,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 23
+          },
+          {
+            "counter": 11,
+            "loaded_state": true,
+            "saved_state": false,
+            "frames_before_quit": 23
+          },
+          {
+            "counter": 12,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 22
+          }
+        ],
+        "complete": true,
+        "normal_save_survives_cold_core_init": true,
+        "state_restores_sram": true,
+        "previous_distinct_generation_preserved": true,
+        "recovery_not_repeated": "existing rejected fixture preserved",
+        "invalid_state_rejected": true,
+        "invalid_state_fixture_removed": true
+      },
+      {
+        "system": "snes",
+        "rom_sha256": "8d54cd75ecfecb2cb3a05da92ee284da6b6f92061af1bc987b8a4a3e13d19e16",
+        "boots": [
+          {
+            "counter": 15,
+            "loaded_state": false,
+            "saved_state": true,
+            "frames_before_quit": 30
+          },
+          {
+            "counter": 16,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 19
+          },
+          {
+            "counter": 15,
+            "loaded_state": true,
+            "saved_state": false,
+            "frames_before_quit": 19
+          },
+          {
+            "counter": 16,
+            "loaded_state": false,
+            "saved_state": false,
+            "frames_before_quit": 19
+          }
+        ],
+        "complete": true,
+        "normal_save_survives_cold_core_init": true,
+        "state_restores_sram": true,
+        "previous_distinct_generation_preserved": true,
+        "recovery_not_repeated": "existing rejected fixture preserved",
+        "invalid_state_rejected": true,
+        "invalid_state_fixture_removed": true
+      }
+    ],
+    "mega_drive": {
+      "complete": true,
+      "input_source": "guest 68000 instructions and scripted Start",
+      "rom_sha256": "ec7643d99287d7fd16eed01b1cb69bf2783ec676f199ef16a6c18e97feb197c2",
+      "baseline": 10,
+      "boots": [
+        {
+          "counter": 12,
+          "battery_sha256": "3fad808d5011d10d4136f92bdf24e947e11b316cfcf1e423b25adfdb625dde42"
+        },
+        {
+          "counter": 13,
+          "battery_sha256": "910c390dc55a301886c708b68776ebfbeffabb119e7e99048086ef4a8cbd0e7b"
+        },
+        {
+          "counter": 12,
+          "battery_sha256": "3fad808d5011d10d4136f92bdf24e947e11b316cfcf1e423b25adfdb625dde42"
+        },
+        {
+          "counter": 13,
+          "battery_sha256": "910c390dc55a301886c708b68776ebfbeffabb119e7e99048086ef4a8cbd0e7b"
+        }
+      ],
+      "start_guest_input": true,
+      "state_restored_cpu_video_sram": true,
+      "cold_init_battery": true,
+      "previous_distinct_backup": true,
+      "state_bytes": 155270,
+      "invalid_states_rejected": [
+        "truncated",
+        "checksum",
+        "rom_identity",
+        "record_schema"
+      ]
+    },
+    "audio_gb": {
+      "elf_sha256": "eea38372e6a1fa6e0b722e3d476d9d346c7210fd2b44f766b11504f178c454a2",
+      "interval_seconds": 31.23694820899982,
+      "clock_ratio": 1.0001582019018118,
+      "sink_delta": {
+        "blocks": 1874,
+        "partial_blocks": 0,
+        "empty_blocks": 0,
+        "missing_frames": 0,
+        "write_errors": 0
+      }
+    },
+    "pause_return": {
+      "firmware": "0.1.14",
+      "elf_sha256": "eea38372e6a1fa6e0b722e3d476d9d346c7210fd2b44f766b11504f178c454a2",
+      "before": {
+        "counter_units": 5,
+        "marker": [
+          120,
+          110
+        ],
+        "marker_color": 65503
+      },
+      "after_start": {
+        "counter_units": 6,
+        "marker": [
+          120,
+          110
+        ],
+        "marker_color": 65503
+      },
+      "pause_menu_open": true,
+      "native_usb_before_console": true,
+      "return_confirmed": true,
+      "reset": "SW_RESET",
+      "battery_persisted_before_return": true,
+      "boot_after_return": true
+    },
+    "host": {
+      "python_tests": 19,
+      "cpp_suites": 6,
+      "asan": true,
+      "ubsan": true,
+      "settings_boundary_bytes_including_newline": 65536,
+      "invalid_utf8_rejected": true,
+      "unknown_fields_preserved": true
+    },
+    "historical_regression": {
+      "firmware": "0.1.13",
+      "report": "artifacts/hardware-verification-v0.1.13.json",
+      "scope": "Equal-size save corruption/recovery for all five systems, search/favorites/recent, covers, inactivity and USB card handover. Not silently counted as fresh 0.1.14 tests."
+    }
+  },
+  "limitations": [
+    "N64 console games/VI/RSP/RDP/PIF/audio/persistence are not implemented; the separate profile is a CPU probe.",
+    "gpSP RV32 backend and controlled heavy-scene A/B remain pending.",
+    "Eight-key A164 rollover/ghosting, per-game remap hardware overrides, RTC/offline progression and EEPROM/Flash/mapper variants need further coverage.",
+    "No complete physical power-cut, SD-full or media-removal validation.",
+    "Legacy raw saves acquire SHA metadata on first flush; earlier corruption cannot be detected retrospectively.",
+    "Catalogue is bounded in RAM without a persistent streaming index."
+  ]
+}

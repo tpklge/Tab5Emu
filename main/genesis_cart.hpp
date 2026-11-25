@@ -1,0 +1,170 @@
+#pragma once
+
+#include "cart.hpp"
+#if defined(ENABLE_GENESIS)
+#include "genesis.hpp"
+#include "md_rom.hpp"
+#endif
+
+class GenesisCart : public Cart {
+public:
+  // an emulator core: a state loads right after the game starts
+  virtual bool supports_resume() const override { return true; }
+
+  explicit GenesisCart(const Cart::Config& config)
+    : Cart(config) {
+    handle_video_setting();
+    init();
+  }
+
+  virtual ~GenesisCart() override {
+    logger_.info("~GenesisCart()");
+    deinit();
+  }
+
+  // cppcheck-suppress uselessOverride
+  virtual void reset() override {
+    Cart::reset();
+#if defined(ENABLE_GENESIS)
+    reset_genesis();
+#endif
+  }
+
+  // cppcheck-suppress uselessOverride
+  virtual void load() override {
+#if defined(ENABLE_GENESIS)
+    if(load_genesis(get_save_path()))Cart::load();
+#endif
+  }
+
+  // cppcheck-suppress uselessOverride
+  virtual void save() override {
+#if defined(ENABLE_GENESIS)
+    if(save_genesis(get_save_path(true)))Cart::save();
+#endif
+  }
+
+  void init() {
+#if defined(ENABLE_GENESIS)
+    switch (info_.platform) {
+    case Emulator::SEGA_GENESIS:
+    case Emulator::SEGA_MEGA_DRIVE:
+      logger_.info("genesis::init()");
+      // the core produces one frame of audio per emulated frame; let the
+      // HAL pace it against the DAC instead of dropping when the queue is full
+      Tab5Emu::get().audio_max_wait_ms(30);
+      if(get_rom_filename().ends_with(".smd") || (rom_size_bytes_>=512 && romdata_[1]==3 && romdata_[8]==0xaa && romdata_[9]==0xbb)){
+        if(!tab5::md::decode_smd(romdata_,rom_size_bytes_))return;
+      }
+      if(prepare_genesis_storage(info_.content_hash,romdata_,rom_size_bytes_))
+        init_genesis(romdata_, rom_size_bytes_);
+      genesis_set_six_buttons(AppSettings::get().ui_settings().md_six_buttons);
+      break;
+    default:
+      logger_.error("unknown platform");
+      return;
+    }
+#endif
+  }
+
+  void deinit() {
+#if defined(ENABLE_GENESIS)
+    deinit_genesis();
+#endif
+  }
+
+  // cppcheck-suppress uselessOverride
+  virtual bool run() override {
+#if defined(ENABLE_GENESIS)
+    run_genesis_rom();
+#endif
+    return Cart::run();
+  }
+
+protected:
+  bool loaded() const override {
+#if defined(ENABLE_GENESIS)
+    return genesis_is_initialized() && genesis_storage_ready();
+#else
+    return false;
+#endif
+  }
+  uint32_t game_frames() const override {
+#if defined(ENABLE_GENESIS)
+    return genesis_frames();
+#else
+    return 0;
+#endif
+  }
+  bool persist_before_exit() override {
+#if defined(ENABLE_GENESIS)
+    return flush_genesis_battery();
+#else
+    return true;
+#endif
+  }
+  // GENESIS
+  static constexpr size_t GENESIS_WIDTH = 320;
+  static constexpr size_t GENESIS_HEIGHT = 224;
+
+  // cppcheck-suppress uselessOverride
+  virtual void pre_menu() override {
+    Cart::pre_menu();
+#if defined(ENABLE_GENESIS)
+    logger_.info("genesis::pre_menu()");
+#endif
+  }
+
+  // cppcheck-suppress uselessOverride
+  virtual void post_menu() override {
+    Cart::post_menu();
+#if defined(ENABLE_GENESIS)
+    logger_.info("genesis::post_menu()");
+#endif
+  }
+
+  virtual void set_original_video_setting() override {
+#if defined(ENABLE_GENESIS)
+    display_original(GENESIS_WIDTH, GENESIS_HEIGHT);
+#endif
+  }
+
+  virtual std::pair<size_t, size_t> get_video_size() const override {
+    auto height = GENESIS_HEIGHT;
+    auto width = GENESIS_WIDTH;
+    return std::make_pair(width, height);
+  }
+
+  // cppcheck-suppress uselessOverride
+  virtual std::span<uint8_t> get_video_buffer() const override {
+#if defined(ENABLE_GENESIS)
+    return get_genesis_video_buffer();
+#else
+    return std::span<uint8_t>();
+#endif
+  }
+
+  virtual void set_fit_video_setting() override {
+#if defined(ENABLE_GENESIS)
+    logger_.info("genesis::video: fit");
+    display_fit(GENESIS_WIDTH, GENESIS_HEIGHT);
+#endif
+  }
+
+  virtual void set_fill_video_setting() override {
+#if defined(ENABLE_GENESIS)
+    logger_.info("genesis::video: fill");
+    display_fill();
+#endif
+  }
+
+  virtual std::string get_save_extension() const override {
+    switch (info_.platform) {
+    case Emulator::SEGA_GENESIS:
+    case Emulator::SEGA_MEGA_DRIVE:
+      return "_genesis.sav";
+    default:
+      return Cart::get_save_extension();
+    }
+  }
+};

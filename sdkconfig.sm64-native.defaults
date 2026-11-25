@@ -1,0 +1,2 @@
+# Native SM64 game/audio stack; applies only to the separate optional app.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=49152

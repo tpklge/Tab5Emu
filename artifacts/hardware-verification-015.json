@@ -1,0 +1,78 @@
+{
+  "format": "tab5-emu-physical-verification-v1",
+  "date": "2026-11-23",
+  "firmware": "0.1.5",
+  "sha256": "fc82a0c7d021d9d2c68587173fc2a3b3dfdb30e25570108bc3c43cb109478227",
+  "elf_sha256": "369d4d58d36fa73d8c728f7ec0463c79db32e802f8f6539ef6099c97b92a3551",
+  "image_bytes": 4028112,
+  "uploaded": true,
+  "received_hash_verified": true,
+  "installed": true,
+  "booted": true,
+  "return_confirmed": true,
+  "physical_tests": true,
+  "plan": {
+    "slot": 4,
+    "partition": "app4",
+    "start": "0x6f0000",
+    "end": "0xad0000",
+    "reserved_bytes": 4063232,
+    "margin_bytes": 35120,
+    "existing_four_apps_unchanged": true,
+    "update_reorganization": false,
+    "initial_registration_explicitly_authorized": true
+  },
+  "tests": {
+    "host": {
+      "python_tests": 17,
+      "cpp_asan_ubsan_suites": 4,
+      "passed": true,
+      "battery_store_host_digest_is_test_substitute": true
+    },
+    "physical_015": {
+      "gb_snes_homebrew_states_sram_previous_distinct_backup": true,
+      "gb_snes_recover_truncated_primary_and_preserve_rejected": true,
+      "gb_snes_truncated_state_refused_guest_continued": true,
+      "gba_scripted_usb_diagonal_a_start_state_sram_backup": true,
+      "gba_recover_primary_and_refuse_two_invalid_generations_without_overwrite": true,
+      "existing_gb_snes_states_loaded_guest_continued_original_roms_unchanged": true,
+      "gb_snes_saves_survived_firmware_restart": true,
+      "return_via_home_launcher_usb_enumerated_before_serial_open": true,
+      "launcher_reset": "SW_RESET",
+      "final_reboot_exact_elf_verified": true,
+      "final_coredump_bytes": 0
+    },
+    "previous_build_physical": {
+      "a164_combinations": {
+        "firmware": "0.1.2",
+        "E+A+O+K_seconds": 2.553799916,
+        "T+Y_seconds": 0.554346791,
+        "eight_keys_tested": false
+      },
+      "volume_and_focus_stress": {
+        "firmware": "0.1.3",
+        "volume_changes": 150,
+        "quit_isolation_cycles": 5,
+        "passed": true
+      }
+    },
+    "gba_light_homebrew_benchmark_015": {
+      "host_interval_seconds": 29.200914957997156,
+      "emulated_frames": 1744,
+      "presented_frames": 1744,
+      "emulated_frames_per_second": 59.724155989926494,
+      "relative_gba_speed": 0.9999440122209451,
+      "presented_frames_per_second": 59.724155989926494
+    }
+  },
+  "limitations": [
+    "Incremental milestone; specification not fully implemented.",
+    "No executable N64 port or integrated GBA RV32 backend; no controlled performance A/B.",
+    "Mega Drive execution/persistence, GBC/RTC/MBC2/EEPROM/Flash variants not physically validated.",
+    "No power-cut, full-SD or keyboard eight-key/ghosting/hotplug physical tests.",
+    "Same-size raw save corruption has no persisted checksum; GB RTC snapshot does not advance offline.",
+    "Async covers/cache, complete UI/fonts/themes/search/favorites/recent/settings.json/inactivity pending.",
+    "GBA benchmark is one light original 0BSD fixture; not general compatibility or audible quality proof.",
+    "Current app4 margin is only 35120 bytes."
+  ]
+}

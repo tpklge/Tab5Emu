@@ -1,0 +1,17 @@
+{
+  "upstream_commit": "d12051778528af718bbc20142c0592b7dbaff96e",
+  "idf_commit": "fff9895c82d744c7237be8847347bdd1b07c6643",
+  "keyboard_reference": "003a83e98a5b0b0dbd975bc4e77e52f0d4e73973",
+  "howboy_reference": "d2ed7442e7fbca96146ce043ae127835fa7e4ce8",
+  "host_tests": "C++ ASan/UBSan + Python; no physical emulator validation",
+  "target": {
+    "chip": "esp32p4",
+    "revision": "not measured in this app",
+    "flash_bytes_nominal": 16777216,
+    "psram_bytes_nominal": 33554432,
+    "cpu_mhz_configured": 360,
+    "cpu_mhz_measured": null,
+    "display_reference": "1280x720; upstream BSP handles ILI9881C/ST7123 variants",
+    "launcher_version_observed": "0.8.0-rc.2"
+  }
+}

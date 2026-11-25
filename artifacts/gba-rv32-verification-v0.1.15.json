@@ -1,0 +1,26 @@
+{
+  "sha256": "5433c6ca4e7b786e42734b5c66972b78b46a2ef4fc567b3a17edd8b01a06b507",
+  "elf_sha256": "e9fd60ccccd1a39d8f0a65cc947500edb90d4644c95ada0a5ff330e0dc051414",
+  "uploaded": false,
+  "received_hash_verified": false,
+  "installed": false,
+  "booted": false,
+  "return_confirmed": false,
+  "physical_tests": false,
+  "tests": {
+    "build": true,
+    "comparison_prior_candidate": {
+      "binary_sha256": "09db172fd33fc71f861f4ff1ee092de2f7bcd5a14c6a4ad836a5d79adb30cedb",
+      "elf_sha256": "25d8e5effabfadd3df5e233be22acfc2be91ffd64b7f71b66a8845f6c5277ba5",
+      "report": "artifacts/gba-rv32-v0.1.15-comparison.json",
+      "production_approved": false,
+      "guest_timing_ratio": 1.5011914165326625
+    }
+  },
+  "limitations": [
+    "Experimental e sem SNES; stable permanece no interpretador.",
+    "Temporizacao do guest divergiu na comparacao anterior; nao e ganho certificado.",
+    "Este binario recompilado apos a correcao do gate MSC nao foi enviado/iniciado; nao herda a verificacao fisica do candidato anterior.",
+    "Jogos comerciais, WAITCNT/esperas de barramento e compatibilidade de estados entre backends ainda precisam de validacao."
+  ]
+}

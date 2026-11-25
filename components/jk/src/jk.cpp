@@ -1,0 +1,1275 @@
+#include "jk.hpp"
+#include "statistics.hpp"
+#include "jk_esp.h"
+
+#include <algorithm>
+#include <map>
+#include <atomic>
+#include <cmath>
+#include <cstdarg>
+#include <cstdio>
+#include <cstring>
+#include <mutex>
+#include <thread>
+#include <vector>
+
+#include <esp_heap_caps.h>
+#include <multi_heap.h>
+
+#include "task.hpp"
+#include <esp_timer.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
+#include "logger.hpp"
+#include "tab5-emu.hpp"
+
+extern "C" {
+namespace {
+size_t arena_free_size(); // the engine heap over the ROM arena (below, in the C glue)
+void arena_create();
+void arena_destroy();
+} // namespace
+}
+
+using namespace std::chrono_literals;
+
+// engine-thread entry points (src/Platform/ESP32/jk_esp_save.c)
+extern "C" {
+int jk_esp_engine_save(const char *path, const char *label);
+int jk_esp_engine_load(const char *path);
+int jk_esp_engine_reset(void);
+}
+
+static espp::Logger logger({.tag = "jk", .level = espp::Logger::Verbosity::INFO});
+
+// ---------------------------------------------------------------------------
+// state shared with the C platform layer
+// ---------------------------------------------------------------------------
+volatile int jk_esp_quit_requested = 0;
+
+namespace {
+jk::Config g_config;
+std::atomic<bool> g_paused{false};
+// true while the engine loop sits in its paused branch (no frame in flight),
+// so the cart may read the frame buffers (screenshots) and post requests
+std::atomic<bool> g_parked{false};
+// The engine runs on its own task: it keeps large buffers on the stack, far
+// more than the main task has, so it gets a big stack in PSRAM.
+TaskHandle_t g_engine_task = nullptr;
+std::atomic<bool> g_engine_running{false};
+std::atomic<bool> g_engine_stop{false};
+std::atomic<bool> g_engine_started_ok{false};
+// software mixer: runs on its own task so audio keeps flowing through engine
+// frame-time jitter (level loads, long frames)
+std::mutex g_audio_mutex;
+// pause-menu requests (save / load / reset) run on the engine thread between
+// frames; the caller blocks until the engine has handled them
+enum class Request { NONE, SAVE, LOAD, RESET };
+std::atomic<Request> g_request{Request::NONE};
+extern "C" void jk_prof_release(void);
+std::string g_request_path;
+std::string g_request_label;
+std::atomic<int> g_request_result{0};
+
+void run_pending_request() {
+  const auto req = g_request.load();
+  if (req == Request::NONE) {
+    return;
+  }
+  int result = 0;
+  switch (req) {
+  case Request::SAVE:
+    result = jk_esp_engine_save(g_request_path.c_str(), g_request_label.c_str());
+    break;
+  case Request::LOAD:
+    result = jk_esp_engine_load(g_request_path.c_str());
+    break;
+  case Request::RESET:
+    result = jk_esp_engine_reset();
+    break;
+  default:
+    break;
+  }
+  g_request_result = result;
+  g_request = Request::NONE;
+}
+
+// post a request and wait for the engine thread to handle it
+bool request(Request req, const std::string &path = {}, const std::string &label = {}) {
+  if (!g_engine_running || !g_engine_started_ok) {
+    return false;
+  }
+  g_request_path = path;
+  g_request_label = label;
+  g_request_result = 0;
+  g_request = req;
+  for (int i = 0; i < 1000 && g_request != Request::NONE; i++) {
+    std::this_thread::sleep_for(10ms);
+  }
+  if (g_request != Request::NONE) {
+    logger.error("engine did not handle the request");
+    g_request = Request::NONE;
+    return false;
+  }
+  return g_request_result != 0;
+}
+std::unique_ptr<espp::Task> g_audio_task;
+extern "C" void stdSound_ESP32_Pump(void);
+extern "C" void jkCutscene_ESP32_SkipTime(uint64_t us);
+constexpr size_t ENGINE_STACK_BYTES = 1024 * 1024;
+int g_native_w = CONFIG_JK_INTERNAL_WIDTH;
+int g_native_h = CONFIG_JK_INTERNAL_HEIGHT;
+// the frame most recently handed to the display, converted to RGB565 (for
+// screenshots / pause image). Allocated on first present.
+std::vector<uint8_t> g_last_rgb565;
+uint16_t g_palette565[256];
+int g_last_w = 0, g_last_h = 0;
+// 8-bit frame the presented palette applies to; kept so the HAL video task
+// (which converts asynchronously) reads a stable buffer
+std::vector<uint8_t> g_frame8[2];
+int g_frame8_index = 0;
+const uint8_t *g_last_frame8 = nullptr;
+// same for the (optional) HUD overlay presented on top of the world frame
+std::vector<uint8_t> g_overlay8[2];
+int g_overlay_w = 0, g_overlay_h = 0;
+} // namespace
+
+// ---------------------------------------------------------------------------
+// C interface used by the platform layer
+// ---------------------------------------------------------------------------
+extern "C" {
+
+uint64_t jk_esp_us_copy = 0;
+uint64_t jk_esp_us_input = 0, jk_esp_us_wait = 0, jk_esp_us_free = 0, jk_esp_us_realloc = 0, jk_esp_us_log = 0;
+uint32_t jk_esp_n_input = 0, jk_esp_n_wait = 0, jk_esp_n_free = 0, jk_esp_n_realloc = 0, jk_esp_n_log = 0;
+
+static uint32_t g_presents = 0;
+
+static void apply_video_setting_for(int w, int h) {
+  auto &emu = Tab5Emu::get();
+  const float sw = static_cast<float>(Tab5Emu::lcd_width()), sh = static_cast<float>(Tab5Emu::lcd_height());
+  switch (emu.video_setting()) {
+  case VideoSetting::ORIGINAL: {
+    // largest integer scale that fits
+    int s = std::max(1, (int)std::min(sw / w, sh / h));
+    emu.display_size(w * s, h * s);
+    break;
+  }
+  case VideoSetting::FILL:
+    emu.display_size(Tab5Emu::lcd_width(), Tab5Emu::lcd_height());
+    break;
+  case VideoSetting::FIT:
+  default: {
+    // the PPA scales in 1/16 steps; round down so the picture stays on screen
+    float s = std::min(sw / w, sh / h);
+    s = std::floor(s * 16.0f) / 16.0f;
+    emu.display_size(static_cast<size_t>(w * s), static_cast<size_t>(h * s));
+    break;
+  }
+  }
+}
+
+void jk_esp_present_8bpp(const uint8_t *pixels, int width, int height, int pitch, const uint8_t *pal24) {
+  jk_esp_present_8bpp_overlay(pixels, width, height, pitch, nullptr, 0, 0, 0, pal24);
+}
+
+void jk_esp_present_8bpp_overlay(const uint8_t *pixels, int width, int height, int pitch,
+                                 const uint8_t *overlay, int overlay_width, int overlay_height,
+                                 int overlay_pitch, const uint8_t *pal24) {
+  auto &emu = Tab5Emu::get();
+  if (g_paused) {
+    // the tab5-emu pause menu owns the screen; the engine only gets here
+    // while paused when a level load (one long "frame") is presenting its
+    // loading screen, which must not draw over the menu
+    return;
+  }
+  if (!overlay || overlay_width <= 0 || overlay_height <= 0) {
+    overlay = nullptr;
+    overlay_width = overlay_height = 0;
+  }
+  g_presents++;
+  if (g_presents <= 10 || (g_presents % 100) == 0) {
+    logger.info("present #{} {}x{} pitch {}", g_presents, width, height, pitch);
+  }
+  if (width != g_last_w || height != g_last_h || overlay_width != g_overlay_w || overlay_height != g_overlay_h) {
+    emu.wait_frame();
+    emu.native_size(width, height, width);
+    emu.overlay_size(overlay_width, overlay_height, overlay_width);
+    apply_video_setting_for(width, height);
+    g_last_w = width;
+    g_last_h = height;
+    g_overlay_w = overlay_width;
+    g_overlay_h = overlay_height;
+    g_last_rgb565.assign((size_t)width * height * 2, 0);
+    g_frame8[0].assign((size_t)width * height, 0);
+    g_frame8[1].assign((size_t)width * height, 0);
+    g_overlay8[0].assign((size_t)overlay_width * overlay_height, 0);
+    g_overlay8[1].assign((size_t)overlay_width * overlay_height, 0);
+    logger.info("present {}x{} overlay {}x{}", width, height, overlay_width, overlay_height);
+  }
+  for (int i = 0; i < 256; i++) {
+    uint8_t r = pal24[i * 3 + 0], g = pal24[i * 3 + 1], b = pal24[i * 3 + 2];
+    g_palette565[i] = (uint16_t)(((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3));
+  }
+  // the previous frame is done (wait_frame), so its buffer can be reused
+  {
+    auto t0 = esp_timer_get_time();
+    emu.wait_frame();
+    jk_esp_us_wait += esp_timer_get_time() - t0; jk_esp_n_wait++;
+  }
+  const auto t_copy = esp_timer_get_time();
+  auto &dst = g_frame8[g_frame8_index];
+  g_frame8_index ^= 1;
+  if (pitch == width) {
+    memcpy(dst.data(), pixels, (size_t)width * height);
+  } else {
+    for (int y = 0; y < height; y++) {
+      memcpy(dst.data() + (size_t)y * width, pixels + (size_t)y * pitch, width);
+    }
+  }
+  g_last_frame8 = dst.data();
+  const uint8_t *ov = nullptr;
+  size_t ov_r0 = 0, ov_r1 = 0;
+  if (overlay) {
+    // the overlay index follows the frame index (both were flipped above).
+    // Only rows with any visible (non-zero) pixel are copied; the HUD leaves
+    // most of the 640x480 layer transparent.
+    auto &odst = g_overlay8[g_frame8_index ^ 1];
+    ov_r0 = SIZE_MAX;
+    for (int y = 0; y < overlay_height; y++) {
+      const uint8_t *row = overlay + (size_t)y * overlay_pitch;
+      bool visible = false;
+      int x = 0;
+      for (; x + 4 <= overlay_width; x += 4) {
+        uint32_t word;
+        memcpy(&word, row + x, sizeof(word));
+        if (word) {
+          visible = true;
+          break;
+        }
+      }
+      for (; !visible && x < overlay_width; x++) {
+        visible = row[x] != 0;
+      }
+      if (visible) {
+        memcpy(odst.data() + (size_t)y * overlay_width, row, overlay_width);
+        ov_r0 = std::min<size_t>(ov_r0, y);
+        ov_r1 = y + 1;
+      }
+    }
+    if (ov_r1 > ov_r0) {
+      ov = odst.data();
+    } else {
+      ov_r0 = ov_r1 = 0;
+    }
+  }
+  jk_esp_us_copy += esp_timer_get_time() - t_copy;
+  emu.palette(g_palette565, 256);
+  emu.push_frame(dst.data(), ov, ov_r0, ov_r1);
+}
+
+void jk_esp_present_report(void) {
+  static uint32_t last_presents = 0;
+  static uint64_t last_wait = 0, last_copy = 0, last_us = 0;
+  const uint64_t now = esp_timer_get_time();
+  const uint32_t n = g_presents - last_presents;
+  const float secs = (now - last_us) / 1e6f;
+  const auto vs = Tab5Emu::get().video_stats();
+  const float vf = vs.frames ? static_cast<float>(vs.frames) : 1.0f;
+  logger.info("heap: internal free {} (largest {}), dma {} (largest {}), psram free {}",
+              heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
+              heap_caps_get_free_size(MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL),
+              heap_caps_get_largest_free_block(MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL),
+              heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+  logger.info("present: {} frames in {:.1f}s = {:.1f} fps; engine wait {:.1f} ms/frame, copy {:.1f} ms/frame; "
+              "video task avg {:.1f} ms max {:.1f} ms (convert {:.1f} ms, blit {:.1f} ms, {} tiles/frame)",
+              n, secs, secs > 0 ? n / secs : 0.0f, n ? (jk_esp_us_wait - last_wait) / 1000.0f / n : 0.0f,
+              n ? (jk_esp_us_copy - last_copy) / 1000.0f / n : 0.0f, get_frame_time_avg() / 1000.0f,
+              get_frame_time_max() / 1000.0f, vs.convert_us / 1000.0f / vf, vs.blit_us / 1000.0f / vf,
+              vs.frames ? vs.tiles / vs.frames : 0);
+  reset_frame_time();
+  last_presents = g_presents;
+  last_wait = jk_esp_us_wait;
+  last_copy = jk_esp_us_copy;
+  last_us = now;
+}
+
+void jk_esp_present_rgb565(const uint16_t *pixels, int width, int height, int pitch) {
+  auto &emu = Tab5Emu::get();
+  if (width != g_last_w || height != g_last_h) {
+    emu.native_size(width, height, pitch);
+    g_last_w = width;
+    g_last_h = height;
+    g_last_rgb565.assign((size_t)width * height * 2, 0);
+  }
+  emu.wait_frame();
+  for (int y = 0; y < height; y++) {
+    memcpy(g_last_rgb565.data() + (size_t)y * width * 2, pixels + (size_t)y * pitch, (size_t)width * 2);
+  }
+  emu.palette(nullptr, 0);
+  emu.push_frame(g_last_rgb565.data());
+}
+
+void jk_esp_read_input(jk_esp_input_t *out) {
+  auto t0 = esp_timer_get_time();
+  struct Acc { int64_t t0; ~Acc() { jk_esp_us_input += esp_timer_get_time() - t0; jk_esp_n_input++; } } acc{t0};
+  auto &emu = Tab5Emu::get();
+  memset(out, 0, sizeof(*out));
+  // touch + USB gamepad; not gamepad_state(), whose keyboard-as-gamepad keys
+  // (W = R, S = Y ...) would reach the engine's joystick binds on top of the
+  // keys themselves
+  out->buttons = static_cast<uint16_t>(emu.touch_gamepad_state().buttons | emu.usb_gamepad_state().buttons);
+  auto touch = emu.touchpad_data();
+  out->touch_down = touch.num_touch_points > 0;
+  out->touch_x = out->touch_down ? touch.x : -1;
+  out->touch_y = out->touch_down ? touch.y : -1;
+  static bool last_down = false;
+  if (out->touch_down != last_down) {
+    logger.info("touch {} at {},{}", out->touch_down ? "down" : "up", touch.x, touch.y);
+    last_down = out->touch_down;
+  }
+  const auto kb = emu.keyboard_state();
+  static_assert(sizeof(kb.keys) == sizeof(out->keys));
+  memcpy(out->keys, kb.keys, sizeof(out->keys));
+  // gamepad as keyboard (the engine's default binds): left stick / d-pad =
+  // W A S D (forward, strafe, back), R = fire (ctrl), L = secondary fire (z),
+  // A = activate (space), B = jump (x), X = crouch (c), Y = use item (enter)
+  // from the USB gamepad only: the merged state also carries the keyboard's
+  // own keys (W = R shoulder, A = X ...) which would come back as extra keys
+  const GamepadState gp = emu.usb_gamepad_state();
+  auto press = [&](int usage) { out->keys[usage >> 3] |= 1 << (usage & 7); };
+  if (gp.up) press(26);     // w
+  if (gp.down) press(22);   // s
+  if (gp.left) press(4);    // a
+  if (gp.right) press(7);   // d
+  if (gp.r) press(0xE0);    // left ctrl: fire
+  if (gp.l) press(29);      // z: secondary fire
+  if (gp.a) press(44);      // space: activate
+  if (gp.b) press(27);      // x: jump
+  if (gp.x) press(6);       // c: crouch
+  if (gp.y) press(40);      // enter: use inventory item
+  const auto ms = emu.mouse_state();
+  out->mouse_buttons = ms.buttons;
+  out->mouse_dx = static_cast<int16_t>(std::clamp(ms.dx, -32767, 32767));
+  out->mouse_dy = static_cast<int16_t>(std::clamp(ms.dy, -32767, 32767));
+  out->mouse_wheel = static_cast<int16_t>(std::clamp(ms.wheel, -32767, 32767));
+}
+
+void jk_esp_mouse_take(int *dx, int *dy, int *wheel) {
+  auto &emu = Tab5Emu::get();
+  const auto ms = emu.take_mouse_motion();
+  int sx = 0, sy = 0;
+  if (emu.usb_gamepad_present()) {
+    // right stick = mouse look: 20% dead zone, squared response, up to
+    // ~40 px per input read (~750 px/s at the engine's input rate)
+    const auto ax = emu.gamepad_axes();
+    auto curve = [](int v) -> int {
+      const float f = v / 32767.0f;
+      const float a = std::fabs(f);
+      if (a < 0.2f) return 0;
+      const float t = (a - 0.2f) / 0.8f;
+      return static_cast<int>((f < 0 ? -1.0f : 1.0f) * t * t * 40.0f);
+    };
+    sx = curve(ax.rx);
+    sy = curve(ax.ry);
+  }
+  if (dx) *dx = ms.dx + sx;
+  if (dy) *dy = ms.dy + sy;
+  if (wheel) *wheel = ms.wheel;
+}
+
+int jk_esp_keyboard_present(void) { return Tab5Emu::get().usb_keyboard_present(); }
+int jk_esp_mouse_present(void) { return Tab5Emu::get().usb_mouse_present(); }
+
+size_t jk_esp_audio_write(const int16_t *stereo_pcm, size_t num_frames) {
+  auto &emu = Tab5Emu::get();
+  emu.audio_max_wait_ms(0); // the mixer pump fills the queue and stops when refused
+  const size_t bytes = num_frames * 2 * sizeof(int16_t);
+  const size_t queued = emu.play_audio(reinterpret_cast<const uint8_t *>(stereo_pcm), bytes);
+  return queued / (2 * sizeof(int16_t));
+}
+
+void jk_esp_audio_set_rate(uint32_t sample_rate) { Tab5Emu::get().audio_sample_rate(sample_rate); }
+
+uint32_t jk_esp_audio_rate(void) { return Tab5Emu::get().audio_sample_rate(); }
+
+void jk_esp_audio_lock(void) { g_audio_mutex.lock(); }
+void jk_esp_audio_unlock(void) { g_audio_mutex.unlock(); }
+
+uint32_t jk_esp_time_ms(void) { return (uint32_t)(esp_timer_get_time() / 1000); }
+size_t jk_esp_psram_free(void) { return heap_caps_get_free_size(MALLOC_CAP_SPIRAM) + arena_free_size(); }
+// The P4's SD host DMAs straight to and from cache-line aligned PSRAM, so the
+// file staging buffer goes there: internal DMA memory is scarce once the USB
+// device is up, and the SD driver needs what is left for its bounce buffers
+// (FATFS's own reads into unaligned buffers, the pause menu's images, saves).
+void *jk_esp_malloc_dma(size_t bytes) {
+  void *p = heap_caps_malloc(bytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_DMA | MALLOC_CAP_CACHE_ALIGNED);
+  return p ? p : heap_caps_malloc(bytes, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+}
+void jk_esp_free_dma(void *ptr) { heap_caps_free(ptr); }
+
+int jk_esp_park_point(void) {
+  if (!g_paused) {
+    return 0;
+  }
+  const uint64_t park_start_us = esp_timer_get_time();
+  g_parked = true;
+  while (g_paused && !g_engine_stop && !jk_esp_quit_requested) {
+    // the pause menu's save / load / reset arrive while parked here: serve
+    // them, or request() times out and the menu shows a state that was
+    // never written (the loop above only looks between frames)
+    run_pending_request();
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
+#if CONFIG_JK_ENGINE
+  // a cutscene keeps time by the wall clock: without this it takes the pause
+  // for lag and decodes every frame it missed at once
+  jkCutscene_ESP32_SkipTime(esp_timer_get_time() - park_start_us);
+#endif
+  g_parked = false;
+  return 1;
+}
+uint64_t jk_esp_time_us(void) { return (uint64_t)esp_timer_get_time(); }
+void jk_esp_sleep_ms(uint32_t ms) { std::this_thread::sleep_for(std::chrono::milliseconds(ms)); }
+
+// ---------------------------------------------------------------------------
+// Live-allocation tracker (debug): pointer -> (size, engine call site) in an
+// open-addressing table, so leaks across engine restarts can be attributed.
+// ---------------------------------------------------------------------------
+#if defined(JK_ESP_FS_DEBUG)
+namespace {
+struct AllocRec {
+  void *p;
+  uint32_t size;
+  uint32_t site;
+};
+constexpr size_t ALLOC_TABLE_CAP = 1u << 17; // 131072 entries, 1.5 MB in PSRAM
+AllocRec *g_alloc_table = nullptr;
+size_t g_alloc_live = 0, g_alloc_dropped = 0;
+uint64_t g_alloc_live_bytes = 0;
+portMUX_TYPE g_alloc_mux = portMUX_INITIALIZER_UNLOCKED;
+
+inline size_t alloc_hash(const void *p) {
+  return (static_cast<size_t>(reinterpret_cast<uintptr_t>(p) >> 3) * 2654435761u) & (ALLOC_TABLE_CAP - 1);
+}
+void alloc_track(void *p, size_t size, const void *site) {
+  if (!p) return;
+  portENTER_CRITICAL(&g_alloc_mux);
+  if (!g_alloc_table) {
+    g_alloc_table = static_cast<AllocRec *>(heap_caps_calloc(ALLOC_TABLE_CAP, sizeof(AllocRec), MALLOC_CAP_SPIRAM));
+  }
+  if (g_alloc_table && g_alloc_live < ALLOC_TABLE_CAP - 1) {
+    size_t i = alloc_hash(p);
+    while (g_alloc_table[i].p) i = (i + 1) & (ALLOC_TABLE_CAP - 1);
+    g_alloc_table[i] = {p, static_cast<uint32_t>(size), static_cast<uint32_t>(reinterpret_cast<uintptr_t>(site))};
+    g_alloc_live++;
+    g_alloc_live_bytes += size;
+  } else {
+    g_alloc_dropped++;
+  }
+  portEXIT_CRITICAL(&g_alloc_mux);
+}
+void alloc_untrack(void *p) {
+  if (!p || !g_alloc_table) return;
+  portENTER_CRITICAL(&g_alloc_mux);
+  size_t i = alloc_hash(p);
+  while (g_alloc_table[i].p && g_alloc_table[i].p != p) i = (i + 1) & (ALLOC_TABLE_CAP - 1);
+  if (g_alloc_table[i].p == p) {
+    g_alloc_live--;
+    g_alloc_live_bytes -= g_alloc_table[i].size;
+    // backward-shift deletion keeps the probe chains intact without tombstones
+    size_t j = i;
+    while (true) {
+      j = (j + 1) & (ALLOC_TABLE_CAP - 1);
+      if (!g_alloc_table[j].p) break;
+      size_t h = alloc_hash(g_alloc_table[j].p);
+      // can entry j move to slot i? only if its home is not in (i, j]
+      bool between = (i < j) ? (h > i && h <= j) : (h > i || h <= j);
+      if (!between) {
+        g_alloc_table[i] = g_alloc_table[j];
+        i = j;
+      }
+    }
+    g_alloc_table[i] = {nullptr, 0, 0};
+  }
+  portEXIT_CRITICAL(&g_alloc_mux);
+}
+} // namespace
+
+void jk_esp_alloc_release(void) {
+  heap_caps_free(g_alloc_table);
+  g_alloc_table = nullptr;
+  g_alloc_live = g_alloc_dropped = 0;
+}
+
+void jk_esp_alloc_dump(int top) {
+  if (!g_alloc_table) {
+    logger.info("alloc: nothing tracked");
+    return;
+  }
+  struct Site { uint32_t site; uint64_t bytes; uint32_t count; };
+  std::vector<Site> sites;
+  portENTER_CRITICAL(&g_alloc_mux);
+  const size_t live = g_alloc_live, dropped = g_alloc_dropped;
+  const uint64_t live_bytes = g_alloc_live_bytes;
+  portEXIT_CRITICAL(&g_alloc_mux);
+  // aggregate outside the critical section (the table only shrinks/grows on
+  // other threads while the engine is stopped, which is when this is called)
+  for (size_t i = 0; i < ALLOC_TABLE_CAP; i++) {
+    const auto &r = g_alloc_table[i];
+    if (!r.p) continue;
+    auto it = std::find_if(sites.begin(), sites.end(), [&](const Site &s) { return s.site == r.site; });
+    if (it == sites.end()) {
+      sites.push_back({r.site, r.size, 1});
+    } else {
+      it->bytes += r.size;
+      it->count++;
+    }
+  }
+  std::sort(sites.begin(), sites.end(), [](const Site &a, const Site &b) { return a.bytes > b.bytes; });
+  logger.info("alloc: {} live allocations, {} bytes, {} sites ({} untracked)", live, live_bytes, sites.size(), dropped);
+  // one of them is the engine's session arrays block until deinit() frees it
+  // (jk_esp_arrays_alloc() in init()): not a leak
+  if (const size_t arrays = jk_esp_arrays_bytes()) {
+    logger.info("alloc: (includes the session arrays, {} bytes in 1 allocation, freed at deinit)", arrays);
+  }
+  for (size_t i = 0; i < sites.size() && i < static_cast<size_t>(top); i++) {
+    logger.info("alloc: site 0x{:08x} {} bytes in {} allocations", sites[i].site, sites[i].bytes, sites[i].count);
+  }
+}
+#else
+void jk_esp_alloc_dump(int) {}
+#endif
+
+// ---------------------------------------------------------------------------
+// Small-object pool for the engine: allocations up to 128 bytes (strings,
+// COG values, list nodes) come from one PSRAM slab with per-size free lists.
+// The engine leaks a few hundred of these per run (stdString_FastWCopy,
+// sithCogExec_PushVector); scattered over the general heap they pinned it so
+// badly that no 6 MB block (the SNES ROM arena) was left afterwards. The slab
+// is permanent: the engine keeps pointers to some of these blocks in statics
+// across sessions and frees them at the *next* start (jkGui_InitMenu frees
+// the previous session's element strings), so releasing the slab at shutdown
+// turned those into stale frees that corrupted whatever had reused the
+// memory. Leaked blocks stay in the slab (~18 KB per session).
+namespace {
+constexpr size_t POOL_BYTES = 2 * 1024 * 1024; // the level load has ~10k small blocks live at once; a fallback to the heap fragments it
+constexpr size_t POOL_CLASSES[] = {16, 32, 48, 64, 96, 128};
+constexpr size_t POOL_NUM_CLASSES = sizeof(POOL_CLASSES) / sizeof(POOL_CLASSES[0]);
+constexpr size_t POOL_HDR = 8; // class index + magic in front of every block
+constexpr uint32_t POOL_MAGIC = 0x4b4a5350;
+uint8_t *g_pool_base = nullptr;
+size_t g_pool_bump = 0;
+void *g_pool_free[POOL_NUM_CLASSES] = {};
+portMUX_TYPE g_pool_lock = portMUX_INITIALIZER_UNLOCKED;
+size_t g_pool_allocs = 0, g_pool_fallbacks = 0;
+
+inline bool pool_owns(const void *p) {
+  return g_pool_base && p >= g_pool_base && p < g_pool_base + POOL_BYTES;
+}
+void *jk_pool_alloc(size_t size) {
+  size_t c = 0;
+  while (c < POOL_NUM_CLASSES && POOL_CLASSES[c] < size) c++;
+  if (c == POOL_NUM_CLASSES) return nullptr;
+  portENTER_CRITICAL(&g_pool_lock);
+  void *blk = g_pool_free[c];
+  if (blk) {
+    g_pool_free[c] = *static_cast<void **>(blk);
+  } else if (g_pool_bump + POOL_HDR + POOL_CLASSES[c] <= POOL_BYTES) {
+    uint32_t *hdr = reinterpret_cast<uint32_t *>(g_pool_base + g_pool_bump);
+    hdr[0] = static_cast<uint32_t>(c);
+    hdr[1] = POOL_MAGIC;
+    blk = hdr + 2;
+    g_pool_bump += POOL_HDR + POOL_CLASSES[c];
+  }
+  if (blk) g_pool_allocs++; else g_pool_fallbacks++;
+  portEXIT_CRITICAL(&g_pool_lock);
+  return blk;
+}
+size_t jk_pool_block_size(const void *p) {
+  const uint32_t *hdr = static_cast<const uint32_t *>(p) - 2;
+  return hdr[1] == POOL_MAGIC && hdr[0] < POOL_NUM_CLASSES ? POOL_CLASSES[hdr[0]] : 0;
+}
+void jk_pool_free(void *p) {
+  const uint32_t *hdr = static_cast<const uint32_t *>(p) - 2;
+  if (hdr[1] != POOL_MAGIC || hdr[0] >= POOL_NUM_CLASSES) return; // not ours (corrupt header)
+  portENTER_CRITICAL(&g_pool_lock);
+  *static_cast<void **>(p) = g_pool_free[hdr[0]];
+  g_pool_free[hdr[0]] = p;
+  portEXIT_CRITICAL(&g_pool_lock);
+}
+} // namespace
+
+void jk_esp_pool_create() {
+  if (g_pool_base) return;
+  static_assert(POOL_BYTES == Tab5Emu::SMALL_OBJECT_SLAB_BYTES);
+  g_pool_base = Tab5Emu::get().small_object_slab(); // reserved at boot, next to the ROM arena
+  if (!g_pool_base) {
+    g_pool_base = static_cast<uint8_t *>(heap_caps_malloc(POOL_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+  }
+  g_pool_bump = 0;
+  memset(g_pool_free, 0, sizeof(g_pool_free));
+  g_pool_allocs = g_pool_fallbacks = 0;
+  if (!g_pool_base) logger.warn("small-object pool: no PSRAM, using the heap");
+}
+void jk_esp_pool_report() {
+  if (!g_pool_base) return;
+  logger.info("small-object pool: {} bytes used of {}, {} allocations, {} heap fallbacks", g_pool_bump, POOL_BYTES,
+              g_pool_allocs, g_pool_fallbacks);
+}
+
+// ---------------------------------------------------------------------------
+// The engine's large allocations go first to a private heap over the HAL's
+// ROM arena (the 6 MB block reserved at boot). The arena never goes back to
+// the system heap, so it stays at its boot address for the carts that keep
+// address-bound save states in it (MGS, TPM), and the engine's level data
+// does not cut up the system heap for the carts that run after it.
+//
+// The engine frees some blocks at the *next* session's start (see the pool
+// above); by then the arena may have held another game. Every block carries
+// the session it was allocated in, and a free from an earlier session is
+// dropped instead of reaching the new heap.
+// ---------------------------------------------------------------------------
+namespace {
+struct ArenaHdr {
+  uint32_t magic;
+  uint32_t session;
+};
+constexpr uint32_t ARENA_MAGIC = 0x4a4b4152;
+multi_heap_handle_t g_arena_heap = nullptr;
+const uint8_t *g_arena_lo = nullptr, *g_arena_hi = nullptr;
+uint32_t g_arena_session = 0;
+portMUX_TYPE g_arena_lock = portMUX_INITIALIZER_UNLOCKED;
+
+inline bool arena_owns(const void *p) { return g_arena_lo && p >= g_arena_lo && p < g_arena_hi; }
+// the header of a live block of this session, or null
+inline ArenaHdr *arena_hdr(void *p) {
+  auto *h = static_cast<ArenaHdr *>(p) - 1;
+  return g_arena_heap && h->magic == ARENA_MAGIC && h->session == g_arena_session ? h : nullptr;
+}
+void *arena_alloc(size_t size) {
+  if (!g_arena_heap) return nullptr;
+  auto *h = static_cast<ArenaHdr *>(multi_heap_malloc(g_arena_heap, size + sizeof(ArenaHdr)));
+  if (!h) return nullptr;
+  h->magic = ARENA_MAGIC;
+  h->session = g_arena_session;
+  return h + 1;
+}
+size_t arena_block_size(void *p) {
+  auto *h = arena_hdr(p);
+  return h ? multi_heap_get_allocated_size(g_arena_heap, h) - sizeof(ArenaHdr) : 0;
+}
+void arena_free(void *p) {
+  auto *h = arena_hdr(p);
+  if (!h) return; // an earlier session's block: its heap is gone
+  h->magic = 0;
+  multi_heap_free(g_arena_heap, h);
+}
+void arena_create() {
+  auto &emu = Tab5Emu::get();
+  auto *base = emu.rom_arena(emu.rom_arena_size());
+  if (!base) {
+    logger.warn("no ROM arena: the engine allocates from the system heap only");
+    return;
+  }
+  g_arena_heap = multi_heap_register(base, emu.rom_arena_size());
+  if (!g_arena_heap) {
+    logger.warn("could not make a heap of the ROM arena");
+    return;
+  }
+  multi_heap_set_lock(g_arena_heap, &g_arena_lock);
+  g_arena_lo = base;
+  g_arena_hi = base + emu.rom_arena_size();
+  g_arena_session++;
+  logger.info("engine heap: the ROM arena, {} KB at {}", multi_heap_free_size(g_arena_heap) / 1024,
+              fmt::ptr(base));
+}
+// the arena's range is kept, so late frees into it are still recognised
+void arena_destroy() { g_arena_heap = nullptr; }
+size_t arena_free_size() { return g_arena_heap ? multi_heap_free_size(g_arena_heap) : 0; }
+size_t arena_largest_free() {
+  if (!g_arena_heap) return 0;
+  multi_heap_info_t info;
+  multi_heap_get_info(g_arena_heap, &info);
+  return info.largest_free_block;
+}
+} // namespace
+
+// PSRAM only, on purpose: the engine's material cache evicts when an
+// allocation fails, and a fallback to internal RAM would instead drain the
+// internal heap (SD card DMA buffers, USB) once PSRAM is full.
+//
+// Zeroed, like calloc: the engine reads some of what it allocates before
+// writing it (the world material array's free-on-reload walk visits entries
+// a load never filled in). On a fresh boot that memory had never been used
+// and read as zeros; after another cart ran (MGS) the same heap holds its
+// leftovers, and the walk followed them into a load fault.
+//
+// No reserve: the engine's material cache grows until an allocation fails
+// (RDMATERIAL_LRU_LOAD_UNLOAD evicts on failure) and the level's working set
+// needs essentially all of PSRAM -- holding back even 128 KB left it
+// evicting every frame. Whatever else in the firmware allocates while the
+// engine runs must do so up front (the frame buffers are) or cope with NULL.
+void *jk_esp_malloc_site(size_t size, const void *site) {
+  void *p = size <= POOL_CLASSES[POOL_NUM_CLASSES - 1] ? jk_pool_alloc(size) : nullptr;
+  if (!p) p = arena_alloc(size);
+  if (!p) p = heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  if (p) memset(p, 0, size);
+#if defined(JK_ESP_FS_DEBUG)
+  alloc_track(p, size, site);
+#endif
+  return p;
+}
+void *jk_esp_malloc(size_t size) { return jk_esp_malloc_site(size, __builtin_return_address(0)); }
+void *jk_esp_realloc_site(void *ptr, size_t size, const void *site) {
+  auto t0 = esp_timer_get_time();
+  struct Acc { int64_t t0; ~Acc() { jk_esp_us_realloc += esp_timer_get_time() - t0; jk_esp_n_realloc++; } } acc{t0};
+#if defined(JK_ESP_FS_DEBUG)
+  alloc_untrack(ptr);
+#endif
+  void *p;
+  if (ptr && pool_owns(ptr)) {
+    const size_t old = jk_pool_block_size(ptr);
+    if (size <= old) {
+      p = ptr; // still fits its class
+    } else {
+      p = jk_esp_malloc_site(size, site);
+      if (p) {
+        memcpy(p, ptr, old);
+        jk_pool_free(ptr);
+      }
+#if defined(JK_ESP_FS_DEBUG)
+      return p; // already tracked by jk_esp_malloc_site
+#endif
+    }
+  } else if (!ptr && size <= POOL_CLASSES[POOL_NUM_CLASSES - 1]) {
+    p = jk_esp_malloc_site(size, site);
+#if defined(JK_ESP_FS_DEBUG)
+    return p;
+#endif
+  } else if (ptr && arena_owns(ptr)) {
+    // grow or shrink in place when the arena can, else move to wherever
+    // there is room (the system heap once the arena is full)
+    const size_t old = arena_block_size(ptr);
+    auto *h = arena_hdr(ptr);
+    void *moved = h ? multi_heap_realloc(g_arena_heap, h, size + sizeof(ArenaHdr)) : nullptr;
+    if (moved) {
+      p = static_cast<ArenaHdr *>(moved) + 1;
+    } else {
+      p = size ? jk_esp_malloc_site(size, site) : nullptr;
+      if (p && h) memcpy(p, ptr, std::min(old, size));
+      if (p || !size) arena_free(ptr);
+#if defined(JK_ESP_FS_DEBUG)
+      return p; // already tracked by jk_esp_malloc_site
+#endif
+    }
+  } else {
+    p = heap_caps_realloc(ptr, size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (!p && ptr && size) {
+      // the system heap is full: the arena may still have room
+      p = arena_alloc(size);
+      if (p) {
+        memcpy(p, ptr, std::min(heap_caps_get_allocated_size(ptr), size));
+        heap_caps_free(ptr);
+      }
+    }
+  }
+#if defined(JK_ESP_FS_DEBUG)
+  alloc_track(p, size, site);
+#endif
+  return p;
+}
+void *jk_esp_realloc(void *ptr, size_t size) { return jk_esp_realloc_site(ptr, size, __builtin_return_address(0)); }
+void jk_esp_free(void *ptr) {
+  auto t0 = esp_timer_get_time();
+#if defined(JK_ESP_FS_DEBUG)
+  alloc_untrack(ptr);
+#endif
+  if (pool_owns(ptr)) {
+    jk_pool_free(ptr);
+  } else if (arena_owns(ptr)) {
+    arena_free(ptr);
+  } else {
+    heap_caps_free(ptr);
+  }
+  jk_esp_us_free += esp_timer_get_time() - t0; jk_esp_n_free++;
+}
+
+void jk_esp_log(const char *fmt, ...) {
+  auto t0 = esp_timer_get_time();
+  struct Acc { int64_t t0; ~Acc() { jk_esp_us_log += esp_timer_get_time() - t0; jk_esp_n_log++; } } acc{t0};
+  char buf[256];
+  va_list args;
+  va_start(args, fmt);
+  vsnprintf(buf, sizeof(buf), fmt, args);
+  va_end(args);
+  // strip the trailing newline the engine usually adds
+  size_t n = strlen(buf);
+  while (n && (buf[n - 1] == '\n' || buf[n - 1] == '\r')) {
+    buf[--n] = 0;
+  }
+  logger.info("{}", buf);
+}
+
+void jk_esp_print_heap(void) {
+  logger.info("heap: internal free {} (largest {}), psram free {} (largest {}), arena free {} (largest {})",
+              heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
+              heap_caps_get_free_size(MALLOC_CAP_SPIRAM), heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM),
+              arena_free_size(), arena_largest_free());
+}
+
+int jk_esp_internal_width(void) { return g_native_w; }
+int jk_esp_internal_height(void) { return g_native_h; }
+const char *jk_esp_game_dir(void) { return g_config.game_dir.c_str(); }
+const char *jk_esp_engine_args(void) { return CONFIG_JK_ENGINE_ARGS; }
+
+} // extern "C"
+
+// ---------------------------------------------------------------------------
+// engine entry points (provided by the platform layer when the engine is
+// built)
+// ---------------------------------------------------------------------------
+#if CONFIG_JK_ENGINE
+extern "C" {
+int jk_esp_engine_startup(const char *game_dir);
+int jk_esp_engine_frame(void);
+void jk_esp_engine_shutdown(void);
+}
+#endif
+
+// ---------------------------------------------------------------------------
+// test pattern (CONFIG_JK_ENGINE=n)
+// ---------------------------------------------------------------------------
+namespace {
+std::vector<uint8_t> g_pattern;
+uint8_t g_pattern_pal[256 * 3];
+uint32_t g_pattern_frame = 0;
+
+void pattern_init() {
+  g_pattern.assign((size_t)g_native_w * g_native_h, 0);
+  // palette: a 216-color cube + greys, so the pattern exercises the LUT path
+  for (int i = 0; i < 216; i++) {
+    g_pattern_pal[i * 3 + 0] = (i / 36) * 51;
+    g_pattern_pal[i * 3 + 1] = ((i / 6) % 6) * 51;
+    g_pattern_pal[i * 3 + 2] = (i % 6) * 51;
+  }
+  for (int i = 216; i < 256; i++) {
+    uint8_t g = (uint8_t)((i - 216) * 255 / 39);
+    g_pattern_pal[i * 3 + 0] = g;
+    g_pattern_pal[i * 3 + 1] = g;
+    g_pattern_pal[i * 3 + 2] = g;
+  }
+}
+
+void pattern_frame() {
+  const int w = g_native_w, h = g_native_h;
+  const uint32_t t = g_pattern_frame++;
+  auto input = jk_esp_input_t{};
+  jk_esp_read_input(&input);
+  for (int y = 0; y < h; y++) {
+    uint8_t *row = g_pattern.data() + (size_t)y * w;
+    for (int x = 0; x < w; x++) {
+      // scrolling color bands + a moving diagonal
+      int band = ((x + t) / 16) % 6;
+      int r = band, g = (y / 40) % 6, b = ((x + y + t) / 24) % 6;
+      row[x] = (uint8_t)(r * 36 + g * 6 + b);
+    }
+  }
+  // corner markers (grey ramp) so orientation / centering are obvious
+  for (int y = 0; y < 16; y++) {
+    for (int x = 0; x < 16; x++) {
+      g_pattern[(size_t)y * w + x] = 255;                       // top-left: white
+      g_pattern[(size_t)y * w + (w - 1 - x)] = 236;             // top-right: grey
+      g_pattern[(size_t)(h - 1 - y) * w + x] = 216;             // bottom-left: black
+    }
+  }
+  // show the pressed gamepad buttons as filled boxes along the bottom
+  for (int b = 0; b < 10; b++) {
+    bool pressed = input.buttons & (1 << b);
+    for (int y = h - 12; y < h - 4; y++) {
+      for (int x = 4 + b * 12; x < 12 + b * 12; x++) {
+        g_pattern[(size_t)y * w + x] = pressed ? 255 : 226;
+      }
+    }
+  }
+  jk_esp_present_8bpp(g_pattern.data(), w, h, w, g_pattern_pal);
+}
+} // namespace
+
+// ---------------------------------------------------------------------------
+// public API
+// ---------------------------------------------------------------------------
+namespace jk {
+
+#if defined(JK_ESP_FS_DEBUG) && CONFIG_HEAP_TRACING_STANDALONE
+// Diagnostic (needs CONFIG_HEAP_TRACING_STANDALONE): which allocations made
+// during a session outlive it (they split the PSRAM heap so the ROM arena
+// cannot be reserved afterwards)
+#include <esp_heap_trace.h>
+static heap_trace_record_t *g_trace_records = nullptr;
+constexpr size_t TRACE_RECORDS = 6000;
+static void trace_start() {
+  if (!g_trace_records) {
+    g_trace_records = static_cast<heap_trace_record_t *>(
+        heap_caps_calloc(TRACE_RECORDS, sizeof(heap_trace_record_t), MALLOC_CAP_SPIRAM));
+    if (!g_trace_records) return;
+    heap_trace_init_standalone(g_trace_records, TRACE_RECORDS);
+  }
+  heap_trace_start(HEAP_TRACE_LEAKS);
+}
+static void trace_dump_big() {
+  heap_trace_stop();
+  const size_t n = heap_trace_get_count();
+  logger.info("heap trace: {} outstanding allocations from this session", n);
+  std::map<uintptr_t, std::pair<size_t, size_t>> small; // top caller -> (count, bytes)
+  for (size_t i = 0; i < n; i++) {
+    heap_trace_record_t rec;
+    if (heap_trace_get(i, &rec) != ESP_OK) continue;
+    if (rec.size < 4 * 1024) {
+      auto &e = small[reinterpret_cast<uintptr_t>(rec.alloced_by[2] ? rec.alloced_by[2] : rec.alloced_by[1])];
+      e.first++;
+      e.second += rec.size;
+      continue;
+    }
+    std::string callers;
+    for (int d = 0; d < CONFIG_HEAP_TRACING_STACK_DEPTH && rec.alloced_by[d]; d++) {
+      callers += fmt::format("{:#x} ", reinterpret_cast<uintptr_t>(rec.alloced_by[d]));
+    }
+    logger.info("  {} KB at {:#x} by {}", rec.size / 1024, reinterpret_cast<uintptr_t>(rec.address), callers);
+  }
+  for (const auto &[caller, e] : small) {
+    logger.info("  small: {} allocations, {} bytes by {:#x}", e.first, e.second, caller);
+  }
+}
+#else
+static void trace_start() {}
+static void trace_dump_big() {}
+#endif
+
+void ensure_pool() { jk_esp_pool_create(); }
+
+bool init(const Config &config) {
+  trace_start();
+  g_config = config;
+  g_paused = false;
+  jk_esp_quit_requested = 0;
+  g_last_w = g_last_h = 0;
+  g_native_w = CONFIG_JK_INTERNAL_WIDTH;
+  g_native_h = CONFIG_JK_INTERNAL_HEIGHT;
+  logger.info("init: game_dir='{}' internal {}x{}", config.game_dir, g_native_w, g_native_h);
+#if CONFIG_JK_ENGINE
+  arena_create();
+  // The engine's largest arrays (AI actors, player infos, the port's
+  // directory cache ...) are allocated for this launch instead of being static
+  // (they would be reserved in every other game): taken first, so they sit at
+  // the start of the fresh engine heap and do not cut up what the level loads
+  // into. Freed in deinit(), once nothing runs the engine any more. Without
+  // them the launch fails: run_frame() reports the engine stopped and the
+  // cart quits (deinit() cleans up).
+  if (!jk_esp_arrays_alloc()) {
+    logger.error("not enough memory for the engine's arrays; psram free {} (largest {}), arena free {}",
+                 heap_caps_get_free_size(MALLOC_CAP_SPIRAM), heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM),
+                 arena_free_size());
+    return false;
+  }
+#if defined(JK_ESP_FS_DEBUG)
+  // bring-up benchmark: SD read throughput and float parsing speed
+  {
+    auto path = config.game_dir + "/resource/Res2.gob";
+    FILE *f = fopen(path.c_str(), "rb");
+    if (f) {
+      std::vector<uint8_t> buf(16 * 1024);
+      size_t total = 0;
+      auto t0 = esp_timer_get_time();
+      while (total < 8 * 1024 * 1024) {
+        size_t n = fread(buf.data(), 1, buf.size(), f);
+        if (!n) break;
+        total += n;
+      }
+      auto dt = esp_timer_get_time() - t0;
+      fclose(f);
+      logger.info("bench: read {} KB in {} ms = {:.1f} MB/s", total / 1024, dt / 1000, total / 1.048576 / (dt ? dt : 1));
+      // line reads
+      f = fopen(path.c_str(), "rb");
+      char line[256];
+      size_t lines = 0;
+      t0 = esp_timer_get_time();
+      while (lines < 50000 && fgets(line, sizeof(line), f)) lines++;
+      dt = esp_timer_get_time() - t0;
+      fclose(f);
+      logger.info("bench: {} fgets in {} ms", lines, dt / 1000);
+    }
+    auto t0 = esp_timer_get_time();
+    float acc = 0;
+    for (int i = 0; i < 20000; i++) {
+      float a, b, c;
+      sscanf("0.123456 -1.234567 12.345678", "%f %f %f", &a, &b, &c);
+      acc += a + b + c;
+    }
+    auto dt = esp_timer_get_time() - t0;
+    logger.info("bench: 20000 sscanf(3 floats) in {} ms (acc {})", dt / 1000, acc);
+  }
+#endif
+  g_engine_stop = false;
+  g_engine_started_ok = false;
+  g_engine_running = true;
+  auto ok = xTaskCreatePinnedToCoreWithCaps(
+      [](void *) {
+        // The frame conversion buffers (about 1 MB) are needed at the first present
+  // of a mode, which comes after the level load has filled PSRAM: the
+  // material cache grows until an allocation fails. Reserved now, so that
+  // assign() later finds the capacity and never allocates. There are no C++
+  // exceptions (a failed allocation in reserve() aborts), so check the heap
+  // first; the engine has not started, so nothing else allocates meanwhile.
+  {
+    const size_t w = CONFIG_JK_INTERNAL_WIDTH, h = CONFIG_JK_INTERNAL_HEIGHT;
+    const size_t rgb = std::max<size_t>(w * h * 2, 640 * 480 * 2);
+    const size_t f8 = std::max<size_t>(w * h, 640 * 480);
+    const size_t ov = 640 * 480;
+    const size_t total = rgb + 2 * f8 + 2 * ov;
+    if (heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM) >= rgb &&
+        heap_caps_get_free_size(MALLOC_CAP_SPIRAM) >= total + 64 * 1024) {
+      g_last_rgb565.reserve(rgb);
+      g_frame8[0].reserve(f8);
+      g_frame8[1].reserve(f8);
+      g_overlay8[0].reserve(ov);
+      g_overlay8[1].reserve(ov);
+    } else {
+      logger.warn("could not reserve the frame buffers up front");
+    }
+  }
+  logger.info("heap before engine startup: internal {} (largest {}), psram {} (largest {})",
+                    heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
+                    heap_caps_get_free_size(MALLOC_CAP_SPIRAM), heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM));
+        jk_esp_pool_create(); // no-op after the first session (see ensure_pool)
+        if (jk_esp_engine_startup(g_config.game_dir.c_str())) {
+          g_engine_started_ok = true;
+          while (!g_engine_stop && !jk_esp_quit_requested) {
+            run_pending_request();
+            jk_esp_park_point();
+            if (!jk_esp_engine_frame()) {
+              logger.warn("engine frame returned 0");
+              break;
+            }
+          }
+          logger.info("engine loop done (stop={} quit={})", g_engine_stop.load(), jk_esp_quit_requested);
+          jk_esp_engine_shutdown();
+          logger.info("heap after engine shutdown: internal {} (largest {}), psram {} (largest {})",
+                      heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
+                      heap_caps_get_free_size(MALLOC_CAP_SPIRAM), heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM));
+          jk_esp_alloc_dump(25);
+        } else {
+          logger.error("engine startup failed");
+        }
+        jk_esp_pool_report();
+#if defined(JK_ESP_FS_DEBUG)
+        // the debug tables (1.5 MB tracker, profiler) were allocated inside
+        // the released ROM arena's hole at the first start: free them too so
+        // the arena can be reserved again
+        jk_esp_alloc_release();
+        jk_prof_release();
+#endif
+        logger.info("heap after pool release: psram {} (largest {})", heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
+                    heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM));
+#if defined(JK_ESP_FS_DEBUG)
+        // what splits the PSRAM heap after a session: allocated blocks >= 64 KB
+        // and free blocks >= 1 MB. Collected inside the walk (the heap lock is
+        // held there: no logging, it takes a mutex and aborts), printed after.
+        {
+          struct Blk { uintptr_t ptr; size_t size; bool used; };
+          static Blk blks[64];
+          static size_t nblk;
+          nblk = 0;
+          heap_caps_walk(
+              MALLOC_CAP_SPIRAM,
+              [](walker_heap_into_t, walker_block_info_t block, void *) -> bool {
+                const bool big_used = block.used && block.size >= 64 * 1024;
+                const bool big_free = !block.used && block.size >= 1024 * 1024;
+                if ((big_used || big_free) && nblk < 64) {
+                  blks[nblk++] = {reinterpret_cast<uintptr_t>(block.ptr), block.size, block.used};
+                }
+                return true;
+              },
+              nullptr);
+          for (size_t i = 0; i < nblk; i++) {
+            logger.info("  psram block {:#x} {} KB {}", blks[i].ptr, blks[i].size / 1024, blks[i].used ? "used" : "free");
+          }
+          trace_dump_big();
+        }
+#endif
+        g_engine_running = false;
+        // a task created ...WithCaps must be deleted by another task for its
+        // (PSRAM) stack to be freed: park here, deinit() deletes us
+        vTaskSuspend(nullptr);
+      },
+      "jk_engine", ENGINE_STACK_BYTES, nullptr, 10, &g_engine_task, 0, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  if (ok != pdPASS) {
+    logger.error("could not create the engine task");
+    g_engine_running = false;
+    return false;
+  }
+  // audio: top the HAL's output queue up every 10 ms (the mixer produces
+  // as much as the queue accepts, so this paces itself by back-pressure)
+  g_audio_task = espp::Task::make_unique({
+      .callback =
+          [](std::mutex &m, std::condition_variable &cv, bool &task_notified) {
+            // mix until the engine has actually parked, so the sound stops
+            // with the picture (it can finish a frame after the pause)
+            if (!g_parked) {
+              stdSound_ESP32_Pump();
+            }
+            std::unique_lock<std::mutex> lk(m);
+            cv.wait_for(lk, 10ms, [&] { return task_notified; });
+            return false;
+          },
+      .task_config = {.name = "jk_audio", .stack_size_bytes = 6 * 1024, .priority = 15, .core_id = 1},
+  });
+  g_audio_task->start();
+  return true;
+#else
+  pattern_init();
+  return true;
+#endif
+}
+
+void deinit() {
+#if CONFIG_JK_ENGINE
+  g_engine_stop = true;
+  jk_esp_quit_requested = 1;
+  while (g_engine_running) {
+    std::this_thread::sleep_for(10ms);
+  }
+  if (g_engine_task) {
+    // wait for the task to park itself, then free its TCB + PSRAM stack
+    while (eTaskGetState(g_engine_task) != eSuspended) {
+      std::this_thread::sleep_for(1ms);
+    }
+    vTaskDeleteWithCaps(g_engine_task);
+  }
+  g_engine_task = nullptr;
+  g_audio_task.reset();
+  // the engine task and the mixer are gone: nothing uses the arrays now
+  jk_esp_arrays_free();
+  // and the buffers it made once per process (see jk_esp.h)
+  sithCogParse_ESP32_ReleaseLexer();
+  stdSound_ESP32_Release();
+#endif
+  Tab5Emu::get().wait_frame();
+  // the presentation buffers belong to this engine run (~1.8 MB). Swapped
+  // with empty vectors: built without exceptions, libstdc++'s shrink_to_fit()
+  // does nothing, and these stayed allocated after the game (the SNES core
+  // then had too little PSRAM left)
+  for (auto &b : g_frame8) {
+    std::vector<uint8_t>().swap(b);
+  }
+  for (auto &b : g_overlay8) {
+    std::vector<uint8_t>().swap(b);
+  }
+  std::vector<uint8_t>().swap(g_last_rgb565);
+  g_last_frame8 = nullptr;
+  g_last_w = g_last_h = 0;
+  g_overlay_w = g_overlay_h = 0;
+  std::vector<uint8_t>().swap(g_pattern);
+#if CONFIG_JK_ENGINE
+  arena_destroy();
+#endif
+}
+
+bool run_frame() {
+#if CONFIG_JK_ENGINE
+  // the engine task does the work; this just paces the cart loop
+  std::this_thread::sleep_for(20ms);
+  return g_engine_running;
+#else
+  if (g_paused) {
+    std::this_thread::sleep_for(10ms);
+    return true;
+  }
+  auto t0 = esp_timer_get_time();
+  pattern_frame();
+  // pace the test pattern at ~60 fps
+  auto elapsed = esp_timer_get_time() - t0;
+  if (elapsed < 16000) {
+    std::this_thread::sleep_for(std::chrono::microseconds(16000 - elapsed));
+  }
+  return !jk_esp_quit_requested;
+#endif
+}
+
+void pause() {
+  g_paused = true;
+#if CONFIG_JK_ENGINE
+  // wait for the frame in flight to finish so the engine's buffers are stable
+  for (int i = 0; i < 200 && g_engine_running && g_engine_started_ok && !g_parked; i++) {
+    std::this_thread::sleep_for(10ms);
+  }
+  if (g_engine_running && !g_parked) {
+    logger.warn("pause: engine did not park");
+  }
+#endif
+}
+void resume() { g_paused = false; }
+
+void reset() {
+  logger.info("reset (restart level)");
+#if CONFIG_JK_ENGINE
+  if (!request(Request::RESET)) {
+    logger.warn("reset: nothing to restart");
+  }
+#else
+  g_pattern_frame = 0;
+#endif
+}
+
+bool save(const std::string &path, int slot) {
+  logger.info("save slot {} -> {}", slot, path);
+#if CONFIG_JK_ENGINE
+  if (path.empty()) {
+    return false;
+  }
+  return request(Request::SAVE, path, fmt::format("Slot {}", slot));
+#else
+  return false;
+#endif
+}
+
+bool load(const std::string &path, int slot) {
+  logger.info("load slot {} <- {}", slot, path);
+#if CONFIG_JK_ENGINE
+  if (path.empty()) {
+    return false;
+  }
+  return request(Request::LOAD, path);
+#else
+  return false;
+#endif
+}
+
+std::pair<size_t, size_t> video_size() {
+  // the size of the frame most recently presented (menus 640x480, the
+  // internal resolution in-game)
+  if (g_last_w > 0 && g_last_h > 0) {
+    return {(size_t)g_last_w, (size_t)g_last_h};
+  }
+  return {(size_t)g_native_w, (size_t)g_native_h};
+}
+
+void apply_video_setting() {
+  if (g_last_w > 0 && g_last_h > 0) {
+    apply_video_setting_for(g_last_w, g_last_h);
+  }
+}
+
+std::span<uint8_t> video_buffer_rgb565() {
+  // convert the last presented 8-bit frame on demand (screenshots only)
+  if (g_last_frame8 && g_last_rgb565.size() == (size_t)g_last_w * g_last_h * 2) {
+    uint16_t *shot = reinterpret_cast<uint16_t *>(g_last_rgb565.data());
+    for (size_t i = 0; i < (size_t)g_last_w * g_last_h; i++) {
+      shot[i] = g_palette565[g_last_frame8[i]];
+    }
+  }
+  return {g_last_rgb565.data(), g_last_rgb565.size()};
+}
+
+} // namespace jk

@@ -1,0 +1,47 @@
+{
+  "profile": "sd-cores",
+  "image_bytes": 4030000,
+  "reservation_bytes": 4063232,
+  "sha256": "7737f7675e5a994f8b140b5a780a787fc844af59cae8e2085db08666c33e591c",
+  "elf_sha256": "2f36109e31bb87b94dfe27fbcd088e1164c4bf20764b74bcfc36d13ccb0e5d4e",
+  "cores": [
+    {
+      "core": "n64",
+      "file": "n64-318e007c3e53ca25f4083d09f2655af277e8b81278fd043ee6eaf47c366c0616.bin",
+      "bytes": 363776,
+      "load_address": 1210170496,
+      "sha256": "318e007c3e53ca25f4083d09f2655af277e8b81278fd043ee6eaf47c366c0616"
+    },
+    {
+      "core": "gba",
+      "file": "gba-62523ecadd515b3e43985a9302b0cd266c073bc078b049f63a8ea8b0fed00fcb.bin",
+      "bytes": 378496,
+      "load_address": 1210170496,
+      "sha256": "62523ecadd515b3e43985a9302b0cd266c073bc078b049f63a8ea8b0fed00fcb"
+    },
+    {
+      "core": "snes",
+      "file": "snes-614250719323d71ba4d0f38bbe3cf4869de00258a40a0923ce64961262e3c081.bin",
+      "bytes": 403200,
+      "load_address": 1210170496,
+      "sha256": "614250719323d71ba4d0f38bbe3cf4869de00258a40a0923ce64961262e3c081"
+    },
+    {
+      "core": "genesis",
+      "file": "genesis-6f3a966f3c03ae5aa7aea8418ed6b177aff70cfd5614e8bac79f77f327c6b60e.bin",
+      "bytes": 762624,
+      "load_address": 1210170496,
+      "sha256": "6f3a966f3c03ae5aa7aea8418ed6b177aff70cfd5614e8bac79f77f327c6b60e"
+    },
+    {
+      "core": "gbc",
+      "file": "gbc-510793d8b400bc33f893b50bbdd5cf83dcc76ec4de8f077a0f2019d5fc438db8.bin",
+      "bytes": 70912,
+      "load_address": 1210170496,
+      "sha256": "510793d8b400bc33f893b50bbdd5cf83dcc76ec4de8f077a0f2019d5fc438db8"
+    }
+  ],
+  "jit_compiled": false,
+  "app_only": true,
+  "hardware_tested": false
+}

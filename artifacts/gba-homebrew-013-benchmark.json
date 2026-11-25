@@ -1,0 +1,2920 @@
+{
+  "host_interval_seconds": 29.109298917013803,
+  "emulated_frames": 1739,
+  "presented_frames": 1739,
+  "emulated_frames_per_second": 59.74036011508299,
+  "relative_gba_speed": 1.0002153131318572,
+  "presented_frames_per_second": 59.74036011508299,
+  "samples": [
+    {
+      "host_seconds": 4.159956006333232e-07,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 2,
+        "frames_presented": 1578,
+        "frames_dropped": 0,
+        "fps": 0.0,
+        "usb_drive": false,
+        "uptime_ms": 42118,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.376,
+          "battery_ma": 1.5,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 2,
+          "frames_drawn": 2,
+          "frames_skipped": 0,
+          "run_us": 27001,
+          "video_callback_us": 1213,
+          "audio_callback_us": 587,
+          "pacing_us": 7705,
+          "audio_requested_bytes": 3364,
+          "audio_accepted_bytes": 3364,
+          "median_run_us": 13318,
+          "p95_run_us": 13683,
+          "p99_run_us": 13683,
+          "window_samples": 2
+        }
+      }
+    },
+    {
+      "host_seconds": 1.0050324159965385,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 62,
+        "frames_presented": 1638,
+        "frames_dropped": 0,
+        "fps": 54.6,
+        "usb_drive": false,
+        "uptime_ms": 43123,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.0,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 62,
+          "frames_drawn": 62,
+          "frames_skipped": 0,
+          "run_us": 832498,
+          "video_callback_us": 44045,
+          "audio_callback_us": 18503,
+          "pacing_us": 197701,
+          "audio_requested_bytes": 135032,
+          "audio_accepted_bytes": 135032,
+          "median_run_us": 13351,
+          "p95_run_us": 13592,
+          "p99_run_us": 16855,
+          "window_samples": 62
+        }
+      }
+    },
+    {
+      "host_seconds": 2.0100695000000997,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 122,
+        "frames_presented": 1698,
+        "frames_dropped": 0,
+        "fps": 59.7,
+        "usb_drive": false,
+        "uptime_ms": 44128,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.376,
+          "battery_ma": 1.0,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 122,
+          "frames_drawn": 122,
+          "frames_skipped": 0,
+          "run_us": 1633940,
+          "video_callback_us": 87309,
+          "audio_callback_us": 36727,
+          "pacing_us": 391806,
+          "audio_requested_bytes": 266704,
+          "audio_accepted_bytes": 266704,
+          "median_run_us": 13333,
+          "p95_run_us": 13592,
+          "p99_run_us": 16532,
+          "window_samples": 122
+        }
+      }
+    },
+    {
+      "host_seconds": 3.015107583007193,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 182,
+        "frames_presented": 1758,
+        "frames_dropped": 0,
+        "fps": 59.7,
+        "usb_drive": false,
+        "uptime_ms": 45133,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.5,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 182,
+          "frames_drawn": 182,
+          "frames_skipped": 0,
+          "run_us": 2433979,
+          "video_callback_us": 132078,
+          "audio_callback_us": 55119,
+          "pacing_us": 586227,
+          "audio_requested_bytes": 398372,
+          "audio_accepted_bytes": 398372,
+          "median_run_us": 13316,
+          "p95_run_us": 13605,
+          "p99_run_us": 16532,
+          "window_samples": 182
+        }
+      }
+    },
+    {
+      "host_seconds": 4.019789750003838,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 242,
+        "frames_presented": 1819,
+        "frames_dropped": 0,
+        "fps": 60.7,
+        "usb_drive": false,
+        "uptime_ms": 46138,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.0,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 242,
+          "frames_drawn": 242,
+          "frames_skipped": 0,
+          "run_us": 3237033,
+          "video_callback_us": 179060,
+          "audio_callback_us": 73179,
+          "pacing_us": 779399,
+          "audio_requested_bytes": 530044,
+          "audio_accepted_bytes": 530044,
+          "median_run_us": 13318,
+          "p95_run_us": 13627,
+          "p99_run_us": 16290,
+          "window_samples": 242
+        }
+      }
+    },
+    {
+      "host_seconds": 5.020513291005045,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 302,
+        "frames_presented": 1878,
+        "frames_dropped": 0,
+        "fps": 59.0,
+        "usb_drive": false,
+        "uptime_ms": 47138,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.5,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 302,
+          "frames_drawn": 302,
+          "frames_skipped": 0,
+          "run_us": 4037825,
+          "video_callback_us": 221641,
+          "audio_callback_us": 90965,
+          "pacing_us": 973858,
+          "audio_requested_bytes": 661712,
+          "audio_accepted_bytes": 661712,
+          "median_run_us": 13314,
+          "p95_run_us": 13611,
+          "p99_run_us": 16169,
+          "window_samples": 302
+        }
+      }
+    },
+    {
+      "host_seconds": 6.025537875000737,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 362,
+        "frames_presented": 1938,
+        "frames_dropped": 0,
+        "fps": 59.7,
+        "usb_drive": false,
+        "uptime_ms": 48143,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.0,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 362,
+          "frames_drawn": 362,
+          "frames_skipped": 0,
+          "run_us": 4838283,
+          "video_callback_us": 264282,
+          "audio_callback_us": 108982,
+          "pacing_us": 1168852,
+          "audio_requested_bytes": 793384,
+          "audio_accepted_bytes": 793384,
+          "median_run_us": 13302,
+          "p95_run_us": 13611,
+          "p99_run_us": 16290,
+          "window_samples": 362
+        }
+      }
+    },
+    {
+      "host_seconds": 7.030559291000827,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 422,
+        "frames_presented": 1998,
+        "frames_dropped": 0,
+        "fps": 59.7,
+        "usb_drive": false,
+        "uptime_ms": 49148,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.376,
+          "battery_ma": 1.0,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 422,
+          "frames_drawn": 422,
+          "frames_skipped": 0,
+          "run_us": 5640253,
+          "video_callback_us": 312000,
+          "audio_callback_us": 126933,
+          "pacing_us": 1361736,
+          "audio_requested_bytes": 925052,
+          "audio_accepted_bytes": 925052,
+          "median_run_us": 13302,
+          "p95_run_us": 13627,
+          "p99_run_us": 16290,
+          "window_samples": 422
+        }
+      }
+    },
+    {
+      "host_seconds": 8.035590875006164,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 482,
+        "frames_presented": 2058,
+        "frames_dropped": 0,
+        "fps": 59.7,
+        "usb_drive": false,
+        "uptime_ms": 50154,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.5,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 482,
+          "frames_drawn": 482,
+          "frames_skipped": 0,
+          "run_us": 6443505,
+          "video_callback_us": 356767,
+          "audio_callback_us": 145071,
+          "pacing_us": 1554853,
+          "audio_requested_bytes": 1056724,
+          "audio_accepted_bytes": 1056724,
+          "median_run_us": 13303,
+          "p95_run_us": 13630,
+          "p99_run_us": 16532,
+          "window_samples": 482
+        }
+      }
+    },
+    {
+      "host_seconds": 9.04005754100217,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 542,
+        "frames_presented": 2118,
+        "frames_dropped": 0,
+        "fps": 59.7,
+        "usb_drive": false,
+        "uptime_ms": 51158,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.0,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 542,
+          "frames_drawn": 542,
+          "frames_skipped": 0,
+          "run_us": 7246752,
+          "video_callback_us": 399800,
+          "audio_callback_us": 163240,
+          "pacing_us": 1746813,
+          "audio_requested_bytes": 1188392,
+          "audio_accepted_bytes": 1188392,
+          "median_run_us": 13303,
+          "p95_run_us": 13653,
+          "p99_run_us": 16532,
+          "window_samples": 542
+        }
+      }
+    },
+    {
+      "host_seconds": 10.04509208300442,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 602,
+        "frames_presented": 2178,
+        "frames_dropped": 0,
+        "fps": 59.7,
+        "usb_drive": false,
+        "uptime_ms": 52163,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.376,
+          "battery_ma": 1.0,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 602,
+          "frames_drawn": 602,
+          "frames_skipped": 0,
+          "run_us": 8047948,
+          "video_callback_us": 444462,
+          "audio_callback_us": 181460,
+          "pacing_us": 1940436,
+          "audio_requested_bytes": 1320064,
+          "audio_accepted_bytes": 1320064,
+          "median_run_us": 13299,
+          "p95_run_us": 13676,
+          "p99_run_us": 16532,
+          "window_samples": 602
+        }
+      }
+    },
+    {
+      "host_seconds": 11.048855625005672,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 662,
+        "frames_presented": 2238,
+        "frames_dropped": 0,
+        "fps": 59.8,
+        "usb_drive": false,
+        "uptime_ms": 53167,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.0,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 662,
+          "frames_drawn": 662,
+          "frames_skipped": 0,
+          "run_us": 8853021,
+          "video_callback_us": 493493,
+          "audio_callback_us": 200294,
+          "pacing_us": 2130820,
+          "audio_requested_bytes": 1451732,
+          "audio_accepted_bytes": 1451732,
+          "median_run_us": 13306,
+          "p95_run_us": 13676,
+          "p99_run_us": 16532,
+          "window_samples": 662
+        }
+      }
+    },
+    {
+      "host_seconds": 12.049862375002704,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 722,
+        "frames_presented": 2298,
+        "frames_dropped": 0,
+        "fps": 59.9,
+        "usb_drive": false,
+        "uptime_ms": 54168,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.376,
+          "battery_ma": 1.0,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 722,
+          "frames_drawn": 722,
+          "frames_skipped": 0,
+          "run_us": 9654469,
+          "video_callback_us": 536570,
+          "audio_callback_us": 218130,
+          "pacing_us": 2325649,
+          "audio_requested_bytes": 1583404,
+          "audio_accepted_bytes": 1583404,
+          "median_run_us": 13302,
+          "p95_run_us": 13676,
+          "p99_run_us": 16532,
+          "window_samples": 722
+        }
+      }
+    },
+    {
+      "host_seconds": 13.054889375009225,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 782,
+        "frames_presented": 2358,
+        "frames_dropped": 0,
+        "fps": 59.7,
+        "usb_drive": false,
+        "uptime_ms": 55173,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.376,
+          "battery_ma": 1.5,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 782,
+          "frames_drawn": 782,
+          "frames_skipped": 0,
+          "run_us": 10457824,
+          "video_callback_us": 579505,
+          "audio_callback_us": 236421,
+          "pacing_us": 2517771,
+          "audio_requested_bytes": 1715072,
+          "audio_accepted_bytes": 1715072,
+          "median_run_us": 13302,
+          "p95_run_us": 13669,
+          "p99_run_us": 16562,
+          "window_samples": 782
+        }
+      }
+    },
+    {
+      "host_seconds": 14.058116665997659,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 842,
+        "frames_presented": 2418,
+        "frames_dropped": 0,
+        "fps": 59.8,
+        "usb_drive": false,
+        "uptime_ms": 56176,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.0,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 842,
+          "frames_drawn": 842,
+          "frames_skipped": 0,
+          "run_us": 11260823,
+          "video_callback_us": 624386,
+          "audio_callback_us": 254831,
+          "pacing_us": 2708981,
+          "audio_requested_bytes": 1846744,
+          "audio_accepted_bytes": 1846744,
+          "median_run_us": 13301,
+          "p95_run_us": 13676,
+          "p99_run_us": 16562,
+          "window_samples": 842
+        }
+      }
+    },
+    {
+      "host_seconds": 15.062948457998573,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 902,
+        "frames_presented": 2478,
+        "frames_dropped": 0,
+        "fps": 59.7,
+        "usb_drive": false,
+        "uptime_ms": 57181,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.376,
+          "battery_ma": 1.0,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 902,
+          "frames_drawn": 902,
+          "frames_skipped": 0,
+          "run_us": 12066509,
+          "video_callback_us": 671544,
+          "audio_callback_us": 273186,
+          "pacing_us": 2899584,
+          "audio_requested_bytes": 1978412,
+          "audio_accepted_bytes": 1978412,
+          "median_run_us": 13305,
+          "p95_run_us": 13676,
+          "p99_run_us": 16562,
+          "window_samples": 902
+        }
+      }
+    },
+    {
+      "host_seconds": 16.06797866600391,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 962,
+        "frames_presented": 2538,
+        "frames_dropped": 0,
+        "fps": 59.7,
+        "usb_drive": false,
+        "uptime_ms": 58186,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.0,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 962,
+          "frames_drawn": 962,
+          "frames_skipped": 0,
+          "run_us": 12869972,
+          "video_callback_us": 714995,
+          "audio_callback_us": 291096,
+          "pacing_us": 3091199,
+          "audio_requested_bytes": 2110084,
+          "audio_accepted_bytes": 2110084,
+          "median_run_us": 13306,
+          "p95_run_us": 13676,
+          "p99_run_us": 16563,
+          "window_samples": 962
+        }
+      }
+    },
+    {
+      "host_seconds": 17.07301016600104,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 1022,
+        "frames_presented": 2598,
+        "frames_dropped": 0,
+        "fps": 59.7,
+        "usb_drive": false,
+        "uptime_ms": 59191,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.0,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 1022,
+          "frames_drawn": 1022,
+          "frames_skipped": 0,
+          "run_us": 13671598,
+          "video_callback_us": 757703,
+          "audio_callback_us": 309098,
+          "pacing_us": 3284813,
+          "audio_requested_bytes": 2241752,
+          "audio_accepted_bytes": 2241752,
+          "median_run_us": 13302,
+          "p95_run_us": 13669,
+          "p99_run_us": 16563,
+          "window_samples": 1022
+        }
+      }
+    },
+    {
+      "host_seconds": 18.076359291007975,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 1082,
+        "frames_presented": 2658,
+        "frames_dropped": 0,
+        "fps": 59.8,
+        "usb_drive": false,
+        "uptime_ms": 60195,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.0,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 1082,
+          "frames_drawn": 1082,
+          "frames_skipped": 0,
+          "run_us": 14472601,
+          "video_callback_us": 805768,
+          "audio_callback_us": 327574,
+          "pacing_us": 3478280,
+          "audio_requested_bytes": 2373424,
+          "audio_accepted_bytes": 2373424,
+          "median_run_us": 13295,
+          "p95_run_us": 13669,
+          "p99_run_us": 16563,
+          "window_samples": 1024
+        }
+      }
+    },
+    {
+      "host_seconds": 19.077317165996647,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 1141,
+        "frames_presented": 2718,
+        "frames_dropped": 0,
+        "fps": 59.9,
+        "usb_drive": false,
+        "uptime_ms": 61196,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.5,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 1142,
+          "frames_drawn": 1142,
+          "frames_skipped": 0,
+          "run_us": 15278448,
+          "video_callback_us": 851110,
+          "audio_callback_us": 345642,
+          "pacing_us": 3667738,
+          "audio_requested_bytes": 2505092,
+          "audio_accepted_bytes": 2505092,
+          "median_run_us": 13299,
+          "p95_run_us": 13683,
+          "p99_run_us": 16674,
+          "window_samples": 1024
+        }
+      }
+    },
+    {
+      "host_seconds": 20.08208237499639,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 1201,
+        "frames_presented": 2778,
+        "frames_dropped": 0,
+        "fps": 59.7,
+        "usb_drive": false,
+        "uptime_ms": 62200,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.0,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 1202,
+          "frames_drawn": 1202,
+          "frames_skipped": 0,
+          "run_us": 16080379,
+          "video_callback_us": 895239,
+          "audio_callback_us": 363122,
+          "pacing_us": 3861918,
+          "audio_requested_bytes": 2636764,
+          "audio_accepted_bytes": 2636764,
+          "median_run_us": 13299,
+          "p95_run_us": 13686,
+          "p99_run_us": 16674,
+          "window_samples": 1024
+        }
+      }
+    },
+    {
+      "host_seconds": 21.082830583007308,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 1261,
+        "frames_presented": 2838,
+        "frames_dropped": 0,
+        "fps": 60.0,
+        "usb_drive": false,
+        "uptime_ms": 63201,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.0,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 1261,
+          "frames_drawn": 1261,
+          "frames_skipped": 0,
+          "run_us": 16868143,
+          "video_callback_us": 937862,
+          "audio_callback_us": 381382,
+          "pacing_us": 4051478,
+          "audio_requested_bytes": 2766240,
+          "audio_accepted_bytes": 2766240,
+          "median_run_us": 13296,
+          "p95_run_us": 13686,
+          "p99_run_us": 16674,
+          "window_samples": 1024
+        }
+      }
+    },
+    {
+      "host_seconds": 22.084210583008826,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 1321,
+        "frames_presented": 2897,
+        "frames_dropped": 0,
+        "fps": 58.9,
+        "usb_drive": false,
+        "uptime_ms": 64203,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.0,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 1321,
+          "frames_drawn": 1321,
+          "frames_skipped": 0,
+          "run_us": 17670311,
+          "video_callback_us": 986072,
+          "audio_callback_us": 400036,
+          "pacing_us": 4244771,
+          "audio_requested_bytes": 2897908,
+          "audio_accepted_bytes": 2897908,
+          "median_run_us": 13299,
+          "p95_run_us": 13699,
+          "p99_run_us": 16674,
+          "window_samples": 1024
+        }
+      }
+    },
+    {
+      "host_seconds": 23.085607750006602,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 1381,
+        "frames_presented": 2957,
+        "frames_dropped": 0,
+        "fps": 59.9,
+        "usb_drive": false,
+        "uptime_ms": 65204,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.5,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 1381,
+          "frames_drawn": 1381,
+          "frames_skipped": 0,
+          "run_us": 18471694,
+          "video_callback_us": 1029284,
+          "audio_callback_us": 417696,
+          "pacing_us": 4439919,
+          "audio_requested_bytes": 3029580,
+          "audio_accepted_bytes": 3029580,
+          "median_run_us": 13299,
+          "p95_run_us": 13699,
+          "p99_run_us": 16563,
+          "window_samples": 1024
+        }
+      }
+    },
+    {
+      "host_seconds": 24.08745429100236,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 1441,
+        "frames_presented": 3017,
+        "frames_dropped": 0,
+        "fps": 59.9,
+        "usb_drive": false,
+        "uptime_ms": 66206,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.5,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 1441,
+          "frames_drawn": 1441,
+          "frames_skipped": 0,
+          "run_us": 19274311,
+          "video_callback_us": 1072647,
+          "audio_callback_us": 435969,
+          "pacing_us": 4632335,
+          "audio_requested_bytes": 3161248,
+          "audio_accepted_bytes": 3161248,
+          "median_run_us": 13300,
+          "p95_run_us": 13686,
+          "p99_run_us": 16563,
+          "window_samples": 1024
+        }
+      }
+    },
+    {
+      "host_seconds": 25.092287082996336,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 1501,
+        "frames_presented": 3077,
+        "frames_dropped": 0,
+        "fps": 59.7,
+        "usb_drive": false,
+        "uptime_ms": 67210,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.5,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 1501,
+          "frames_drawn": 1501,
+          "frames_skipped": 0,
+          "run_us": 20076305,
+          "video_callback_us": 1117728,
+          "audio_callback_us": 454008,
+          "pacing_us": 4825506,
+          "audio_requested_bytes": 3292920,
+          "audio_accepted_bytes": 3292920,
+          "median_run_us": 13298,
+          "p95_run_us": 13699,
+          "p99_run_us": 16563,
+          "window_samples": 1024
+        }
+      }
+    },
+    {
+      "host_seconds": 26.09732470799645,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 1561,
+        "frames_presented": 3137,
+        "frames_dropped": 0,
+        "fps": 59.7,
+        "usb_drive": false,
+        "uptime_ms": 68215,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.0,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 1561,
+          "frames_drawn": 1561,
+          "frames_skipped": 0,
+          "run_us": 20880473,
+          "video_callback_us": 1164239,
+          "audio_callback_us": 472175,
+          "pacing_us": 5017819,
+          "audio_requested_bytes": 3424588,
+          "audio_accepted_bytes": 3424588,
+          "median_run_us": 13299,
+          "p95_run_us": 13691,
+          "p99_run_us": 16563,
+          "window_samples": 1024
+        }
+      }
+    },
+    {
+      "host_seconds": 27.102350583008956,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 1621,
+        "frames_presented": 3197,
+        "frames_dropped": 0,
+        "fps": 59.7,
+        "usb_drive": false,
+        "uptime_ms": 69221,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.5,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 1621,
+          "frames_drawn": 1621,
+          "frames_skipped": 0,
+          "run_us": 21682103,
+          "video_callback_us": 1207158,
+          "audio_callback_us": 489933,
+          "pacing_us": 5211639,
+          "audio_requested_bytes": 3556260,
+          "audio_accepted_bytes": 3556260,
+          "median_run_us": 13301,
+          "p95_run_us": 13684,
+          "p99_run_us": 16563,
+          "window_samples": 1024
+        }
+      }
+    },
+    {
+      "host_seconds": 28.10617858300975,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 1681,
+        "frames_presented": 3257,
+        "frames_dropped": 0,
+        "fps": 59.8,
+        "usb_drive": false,
+        "uptime_ms": 70224,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.5,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 1681,
+          "frames_drawn": 1681,
+          "frames_skipped": 0,
+          "run_us": 22483315,
+          "video_callback_us": 1250196,
+          "audio_callback_us": 508075,
+          "pacing_us": 5405930,
+          "audio_requested_bytes": 3687928,
+          "audio_accepted_bytes": 3687928,
+          "median_run_us": 13296,
+          "p95_run_us": 13673,
+          "p99_run_us": 16681,
+          "window_samples": 1024
+        }
+      }
+    },
+    {
+      "host_seconds": 29.109299333009403,
+      "status": {
+        "state": "game",
+        "rom": "/sdcard/Tab5-Emu/roms/gba/tab5-diagnostic-ab627e01.gba",
+        "platform": "GBA",
+        "console": "Game Boy Advance",
+        "game_frames": 1741,
+        "frames_presented": 3317,
+        "frames_dropped": 0,
+        "fps": 59.8,
+        "usb_drive": false,
+        "uptime_ms": 71228,
+        "internal_free": 164763,
+        "internal_largest": 94196,
+        "internal_min_free": 66664,
+        "psram_free": 10705924,
+        "psram_largest": 10485748,
+        "psram_min_free": 10253204,
+        "dma_free": 125623,
+        "dma_largest": 94196,
+        "firmware": "0.1.3",
+        "built": "Nov 23 2026 04:58:30",
+        "partition": "app4",
+        "elf_sha256": "df0264444",
+        "reset_reason": 3,
+        "last_panic": "",
+        "filter": ""
+      },
+      "diagnostics": {
+        "settings": {
+          "volume": 60,
+          "muted": 0,
+          "brightness": 72,
+          "video": 1,
+          "resume": 1,
+          "input_test": 0
+        },
+        "limits": {
+          "volume": [
+            0,
+            100
+          ],
+          "muted": [
+            0,
+            1
+          ],
+          "brightness": [
+            5,
+            100
+          ],
+          "video": [
+            0,
+            2
+          ],
+          "resume": [
+            0,
+            1
+          ],
+          "input_test": [
+            0,
+            1
+          ]
+        },
+        "platform": {
+          "chip_revision": 103,
+          "cpu_hz": 360000000,
+          "sd_present": true,
+          "a164_present": true,
+          "keys_hid": [],
+          "buttons": 0,
+          "keyboard_buttons": 0,
+          "battery_present": true,
+          "battery_volts": 8.375,
+          "battery_ma": 1.0,
+          "charging": false,
+          "paludo_return": true
+        },
+        "gba_metrics": {
+          "backend": "gpsp-interpreter",
+          "nominal_hz": 59.7275,
+          "frames_emulated": 1741,
+          "frames_drawn": 1741,
+          "frames_skipped": 0,
+          "run_us": 23284793,
+          "video_callback_us": 1296932,
+          "audio_callback_us": 526475,
+          "pacing_us": 5599459,
+          "audio_requested_bytes": 3819600,
+          "audio_accepted_bytes": 3819600,
+          "median_run_us": 13297,
+          "p95_run_us": 13682,
+          "p99_run_us": 16681,
+          "window_samples": 1024
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "profile": "n64",
+  "image_bytes": 4024768,
+  "reservation_bytes": 4063232,
+  "sha256": "733c642e18515b94ab2ebad8a1eb7774fa52020b6458053f6bed7cc67c2bccf5",
+  "elf_sha256": "818abbc51fa6f1b15a27e84f9da34d9adfb456623b9b77cc3d2b90865558ee45",
+  "jit_compiled": false,
+  "app_only": true,
+  "hardware_tested": false
+}

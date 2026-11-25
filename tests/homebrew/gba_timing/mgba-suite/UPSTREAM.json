@@ -1,0 +1,18 @@
+{
+  "url": "https://github.com/mgba-emu/suite",
+  "commit": "e6942030d25ffe3ba76c72b73a86da073ec857cc",
+  "license": "MIT",
+  "files": {
+    "LICENSE": "2ee28a3f7b56a9b743bd5b7ca9ac0a337da4e1cce95ab917ecfae8944135f6fb",
+    "include/macros.s": "9144919b855e6a8a005c54d92ba7f7bbfe022f6278cc3568276b6ad201a26749",
+    "src/tests/basic.s": "5f607e4ef7682f4c7147884b2d3e10ed5fc72f478f7479f6d21fa177fc8ca676",
+    "src/tests/loadstore.s": "5d63d8696b3ba975c472c7b80024106fac8d8cdb87c014347f88fb0edf48ba37",
+    "src/tests/mul.s": "9bb1db0b1316b51354e9767077f8092f7838d901079420b7cc1997024b32a1c4",
+    "src/tests/b.s": "f0cdaccb416b4171e15a0a2bbfd6061b22676d2f2aa74548cd6c3c34a4302589"
+  },
+  "expected_source": {
+    "path": "src/timing.c",
+    "sha256": "42e8030d5dab2e913d2903a48c9beb3b7acc4d7ed2110f6f01c090d5b8c84261"
+  },
+  "local_changes": "Imported assembly unchanged; local headless runner and SRAM export. The duplicate testB table entry labelled nop ; b pc is excluded. The standalone build marks .iwram/.ewram as executable loadable sections instead of relying on libgba link inputs."
+}

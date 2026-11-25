@@ -1,0 +1,18 @@
+set(tab5_main_sources "main.cpp")
+if(TAB5_PROFILE STREQUAL "gba-rv32" OR TAB5_PROFILE STREQUAL "n64" OR TAB5_PROFILE STREQUAL "sd-cores")
+  list(APPEND tab5_main_sources "profile_reserve.S")
+endif()
+idf_component_register(SRCS ${tab5_main_sources}
+                       INCLUDE_DIRS ".")
+if(TAB5_PROFILE STREQUAL "gba-rv32" OR TAB5_PROFILE STREQUAL "n64" OR TAB5_PROFILE STREQUAL "sd-cores")
+  target_link_libraries(${COMPONENT_LIB} INTERFACE "-Wl,--undefined=tab5_profile_reserve")
+endif()
+if(TAB5_PROFILE STREQUAL "n64")
+  set(TAB5_N64_RESERVE_BYTES 1277952 CACHE STRING "Hashed flash-only reserve preserving app4 allocation")
+  target_compile_definitions(${COMPONENT_LIB} PRIVATE TAB5_N64_RESERVE_BYTES=${TAB5_N64_RESERVE_BYTES})
+endif()
+
+if(TAB5_SD_CORES)
+  set(TAB5_SD_RESERVE_BYTES 1601680 CACHE STRING "Hashed flash-only app4 reservation for SD cores")
+  target_compile_definitions(${COMPONENT_LIB} PRIVATE TAB5_SD_RESERVE_BYTES=${TAB5_SD_RESERVE_BYTES})
+endif()

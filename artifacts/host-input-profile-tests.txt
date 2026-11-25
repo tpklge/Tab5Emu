@@ -1,0 +1,1 @@
+input profiles: precedence, defaults, legacy, conflicts, bounds and focus gate OK

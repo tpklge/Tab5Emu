@@ -1,0 +1,13 @@
+{
+  "profile": "stable",
+  "commit": "9997767f91985790f93d59cfd8b44430485cfaf1",
+  "files": 5,
+  "source_files": 10604,
+  "checksums": true,
+  "app_image": true,
+  "sd_crc_and_fonts": true,
+  "no_personal_data_directories": true,
+  "source_manifest": true,
+  "tested": true,
+  "source_dirty": true
+}

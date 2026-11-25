@@ -1,0 +1,30 @@
+[
+  {
+    "slot": 0,
+    "label": "app0",
+    "name": "tab5_meshtastic_v2",
+    "version": "4ec97bf-dirty",
+    "descriptorValid": true
+  },
+  {
+    "slot": 1,
+    "label": "app1",
+    "name": "tab5gotchi",
+    "version": "0.1.0",
+    "descriptorValid": true
+  },
+  {
+    "slot": 2,
+    "label": "app2",
+    "name": "tab5gotchi",
+    "version": "0.2.1",
+    "descriptorValid": true
+  },
+  {
+    "slot": 3,
+    "label": "app3",
+    "name": "tabchat",
+    "version": "0.3.0",
+    "descriptorValid": true
+  }
+]

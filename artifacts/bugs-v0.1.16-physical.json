@@ -1,0 +1,273 @@
+{
+  "status": "stable regression completed; final Launcher round trip pending",
+  "volume_percent": 5,
+  "sha256": "f52f1ed52346bb6f73843eaab33c59703f82e10011c663ce4dce8e4822655e72",
+  "elf_sha256": "ed7911535bfcade16213e04a7a866aaac25b1dba5a2214ea6e3c6eef103ae33c",
+  "tests": [
+    {
+      "game": "Ultimate Mortal Kombat 3",
+      "scene": "actual round 1, clock 99 to 75",
+      "seconds": 20.020243415987352,
+      "emulated_fps": 60.288977257696025,
+      "presented_fps": 16.882911609860194,
+      "audio_sink_delta": {
+        "blocks": 1201,
+        "partial_blocks": 0,
+        "empty_blocks": 0,
+        "missing_frames": 0,
+        "write_errors": 0
+      },
+      "paused_before": false,
+      "paused_after": false,
+      "captures_reviewed": true
+    },
+    {
+      "game": "Top Gear",
+      "scene": "race, X accelerator held",
+      "seconds": 20.020183042011922,
+      "emulated_fps": 59.98946150890466,
+      "presented_fps": 16.28356740374931,
+      "audio_sink_delta": {
+        "blocks": 1202,
+        "partial_blocks": 2,
+        "empty_blocks": 0,
+        "missing_frames": 1481,
+        "write_errors": 0
+      },
+      "paused_before": false,
+      "paused_after": false,
+      "captures_reviewed": true
+    },
+    {
+      "game": "Circle of the Moon",
+      "scene": "controllable Nathan after opening dialogue, B held",
+      "seconds": 20.02029250000487,
+      "emulated_fps": 59.73938692452715,
+      "presented_fps": 59.73938692452715,
+      "audio_sink_delta": {
+        "blocks": 1201,
+        "partial_blocks": 0,
+        "empty_blocks": 0,
+        "missing_frames": 0,
+        "write_errors": 0
+      },
+      "paused_before": false,
+      "paused_after": false,
+      "captures_reviewed": true
+    },
+    {
+      "game": "Harmony of Dissonance",
+      "scene": "first controllable area, B held",
+      "seconds": 20.02170841701445,
+      "emulated_fps": 59.68521642161609,
+      "presented_fps": 51.244378283328956,
+      "audio_sink_delta": {
+        "blocks": 1202,
+        "partial_blocks": 1,
+        "empty_blocks": 0,
+        "missing_frames": 186,
+        "write_errors": 0
+      },
+      "paused_before": false,
+      "paused_after": false,
+      "captures_reviewed": true
+    },
+    {
+      "game": "Aria of Sorrow",
+      "scene": "inside castle, B held",
+      "seconds": 20.024065958015854,
+      "emulated_fps": 47.49285195094477,
+      "presented_fps": 24.820133984878602,
+      "audio_sink_delta": {
+        "blocks": 1201,
+        "partial_blocks": 250,
+        "empty_blocks": 0,
+        "missing_frames": 196535,
+        "write_errors": 0
+      },
+      "paused_before": false,
+      "paused_after": false,
+      "captures_reviewed": true
+    },
+    {
+      "game": "F-Zero GP Legend",
+      "scene": "actual race",
+      "seconds": 20.01649329200154,
+      "emulated_fps": 30.474868454793327,
+      "presented_fps": 20.333231903444073,
+      "audio_sink_delta": {
+        "blocks": 1201,
+        "partial_blocks": 545,
+        "empty_blocks": 46,
+        "missing_frames": 470574,
+        "write_errors": 0
+      },
+      "paused_before": false,
+      "paused_after": false,
+      "captures_reviewed": true
+    },
+    {
+      "game": "Pokemon Yellow",
+      "scene": "title music, preserved slot 2 loaded",
+      "seconds": 90.02247070800513,
+      "emulated_fps": 59.69620648861089,
+      "presented_fps": 29.848103244305445,
+      "audio_sink_delta": {
+        "blocks": 5401,
+        "partial_blocks": 6,
+        "empty_blocks": 0,
+        "missing_frames": 927,
+        "write_errors": 0
+      },
+      "paused_before": false,
+      "paused_after": false,
+      "captures_reviewed": true
+    },
+    {
+      "game": "Zelda Links Awakening DX",
+      "scene": "title music",
+      "seconds": 30.020437833009055,
+      "emulated_fps": 59.75928832148485,
+      "presented_fps": 29.879644160742426,
+      "audio_sink_delta": {
+        "blocks": 1801,
+        "partial_blocks": 0,
+        "empty_blocks": 0,
+        "missing_frames": 0,
+        "write_errors": 0
+      },
+      "paused_before": false,
+      "paused_after": false,
+      "captures_reviewed": true
+    }
+  ],
+  "tekken": {
+    "complete": true,
+    "scope": "ten captures over more than one minute; advancing clock and subsequent round, intact enemy",
+    "unique_captures": 10,
+    "protected_state_v3_save_load": true,
+    "full_playthrough": false
+  },
+  "regression": {
+    "complete": true,
+    "short_chord_does_not_pause": true,
+    "held_chord_opens_once_and_stays_open": true,
+    "resume_after_release": true,
+    "chord_rearmed": true,
+    "md_homebrew": {
+      "rom_sha256": "ec7643d99287d7fd16eed01b1cb69bf2783ec676f199ef16a6c18e97feb197c2",
+      "baseline": 18,
+      "boots": [
+        {
+          "counter": 20,
+          "battery_sha256": "48cad6b0d8af29ee98bf8720a32ac8a17b9c4c781ce6b83d3a947925ee9877d8"
+        },
+        {
+          "counter": 21,
+          "battery_sha256": "8cf122489ab9346718cc6b89156165f0f2c55cdf0f5f3d1a99b610cfd2ddb38b"
+        },
+        {
+          "counter": 20,
+          "battery_sha256": "48cad6b0d8af29ee98bf8720a32ac8a17b9c4c781ce6b83d3a947925ee9877d8"
+        },
+        {
+          "counter": 21,
+          "battery_sha256": "8cf122489ab9346718cc6b89156165f0f2c55cdf0f5f3d1a99b610cfd2ddb38b"
+        }
+      ],
+      "start_guest_input": true,
+      "state_restored_cpu_video_sram": true,
+      "cold_init_battery": true,
+      "previous_distinct_backup": true,
+      "state_bytes": 155270,
+      "invalid_states_rejected": [
+        "truncated",
+        "checksum",
+        "rom_identity",
+        "record_schema"
+      ],
+      "complete": true
+    },
+    "gba_homebrew": {
+      "firmware": "0.1.16",
+      "initial": {
+        "counter_units": 1,
+        "marker": [
+          120,
+          110
+        ],
+        "marker_color": 65503
+      },
+      "diagonal": {
+        "counter_units": 1,
+        "marker": [
+          132,
+          98
+        ],
+        "marker_color": 65503
+      },
+      "button_a": {
+        "counter_units": 1,
+        "marker": [
+          132,
+          98
+        ],
+        "marker_color": 1984
+      },
+      "incremented": {
+        "counter_units": 2,
+        "marker": [
+          132,
+          98
+        ],
+        "marker_color": 65503
+      },
+      "second_increment": {
+        "counter_units": 3,
+        "marker": [
+          132,
+          98
+        ],
+        "marker_color": 65503
+      },
+      "state_restored": {
+        "counter_units": 2,
+        "marker": [
+          132,
+          98
+        ],
+        "marker_color": 65503
+      },
+      "battery": {
+        "size": 131072,
+        "first_two_bytes": "5421",
+        "sha256": "78bdea2f4087794ccbbbca307239396f3cfd668804dfbdff5f77e8d69d670940"
+      },
+      "savestate_preserves_latest_sram": true,
+      "fresh_boot_battery": {
+        "counter_units": 3,
+        "marker": [
+          120,
+          110
+        ],
+        "marker_color": 65503
+      },
+      "previous_distinct_generation_preserved": true,
+      "backup_valid": true
+    },
+    "gba_alu_smc": {
+      "magic": "T5RV",
+      "iterations": 239,
+      "checksum": 4368456,
+      "smc_failures": 0,
+      "frames": 719,
+      "iterations_per_frame": 0.33240611961057026
+    }
+  },
+  "limitations": [
+    "Aria inside castle and GP Legend race remain slow, with missing audio samples.",
+    "Short scene checks do not certify all game effects or an entire playthrough.",
+    "Sink counters and screenshots do not establish audible speaker quality.",
+    "Experimental RV32 is separate from stable and not approved for production."
+  ]
+}

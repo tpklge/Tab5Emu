@@ -1,0 +1,232 @@
+// SNES core glue for tab5-emu (snes9x2005 via snes_glue.c)
+#include "snes.hpp"
+#include "snes_glue.h"
+
+#include <chrono>
+#include <cstdio>
+#include <cstring>
+#include "file_read.hpp"
+#include <thread>
+#include <vector>
+#include <atomic>
+
+#include <esp_heap_caps.h>
+#include <esp_timer.h>
+
+#include "box-emu.hpp"
+#include "statistics.hpp"
+#include "battery_store.hpp"
+#include "render_budget.hpp"
+
+#include <sdkconfig.h>
+#if CONFIG_JK_ESP_DEBUG
+// the JK component's sampling profiler (tick hook on core 0); weak so this
+// component does not depend on it
+extern "C" void jk_prof_start(void) __attribute__((weak));
+extern "C" void jk_prof_dump(int top) __attribute__((weak));
+#endif
+
+extern "C" {
+#include "snes9x.h" // SNES_*_MASK
+}
+
+namespace {
+bool g_initialized = false;
+bool g_storage_ready=false;
+auto &g_battery=tab5::content::primary_battery_store();
+std::atomic<uint32_t> g_emulated_frames{0};
+uint8_t *g_last_frame = nullptr;
+int g_last_w = 256, g_last_h = 224;
+tab5::video::RenderBudget g_render_budget;
+// rendered vs skipped frames (the frame-time statistics blend both)
+static uint64_t g_rendered_frames = 0, g_rendered_us = 0, g_skipped_frames = 0, g_skipped_us = 0;
+static uint64_t g_next_due = 0; // cumulative frame deadline (esp_timer us)
+// the last frame packed for a screenshot (the core's frames have a pitch)
+std::vector<uint8_t> g_packed;
+}
+
+extern "C" uint32_t snes_host_read_joypad(int port) {
+  if (port != 0) return 0;
+  const auto st = BoxEmu::get().gamepad_state();
+  uint32_t j = 0;
+  if (st.a) j |= SNES_A_MASK;
+  if (st.b) j |= SNES_B_MASK;
+  if (st.x) j |= SNES_X_MASK;
+  if (st.y) j |= SNES_Y_MASK;
+  if (st.start) j |= SNES_START_MASK;
+  if (st.select) j |= SNES_SELECT_MASK;
+  if (st.up) j |= SNES_UP_MASK;
+  if (st.down) j |= SNES_DOWN_MASK;
+  if (st.left) j |= SNES_LEFT_MASK;
+  if (st.right) j |= SNES_RIGHT_MASK;
+  if (st.l) j |= SNES_TL_MASK; // gamepad L / keyboard Q
+  if (st.r) j |= SNES_TR_MASK; // gamepad R / keyboard W
+  return j;
+}
+
+static void *g_rom_heap_buffer = nullptr; // when the arena was not available
+extern "C" void *snes_host_rom_alloc(size_t size) {
+  auto *p = BoxEmu::get().rom_arena(size);
+  if (!p) {
+    fmt::print("snes: no ROM arena ({} bytes needed, {} reserved); trying the heap\n", size, BoxEmu::get().rom_arena_size());
+    g_rom_heap_buffer = heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    p = static_cast<uint8_t *>(g_rom_heap_buffer);
+  }
+  return p;
+}
+extern "C" void snes_host_rom_free(void *p) {
+  if (p && p == g_rom_heap_buffer) {
+    heap_caps_free(g_rom_heap_buffer);
+    g_rom_heap_buffer = nullptr;
+  } // else: the arena is permanent
+}
+
+extern "C" void snes_host_audio(const int16_t *stereo, size_t frames) {
+  if (BoxEmu::get().is_muted()) return;
+  BoxEmu::get().play_audio(reinterpret_cast<const uint8_t *>(stereo), frames * 2 * sizeof(int16_t));
+}
+
+static void init_snes_common(bool ok);
+void init_snes(uint8_t *romdata, size_t rom_data_size) { init_snes_common(snes_glue_init(romdata, rom_data_size)); }
+void init_snes(const std::string &rom_path) { init_snes_common(snes_glue_init_file(rom_path.c_str())); }
+
+static void init_snes_common(bool ok) {
+  g_initialized = false;
+  g_storage_ready=false;g_battery.reset();g_emulated_frames=0;
+  if (!ok) {
+    fmt::print("snes: init failed (psram free {} largest {}, internal free {} largest {})\n",
+               heap_caps_get_free_size(MALLOC_CAP_SPIRAM), heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM),
+               heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
+    snes_glue_deinit();
+    return;
+  }
+  auto &emu = BoxEmu::get();
+  emu.palette(nullptr);
+  emu.audio_sample_rate(snes_glue_audio_rate());
+  emu.audio_max_wait_ms(30);
+  emu.native_size(256, 224, snes_glue_pitch() / 2);
+  g_last_w = 256;
+  g_last_h = 224;
+  g_render_budget.reset();
+  reset_frame_time();
+  g_rendered_frames = g_rendered_us = g_skipped_frames = g_skipped_us = 0;
+  g_next_due = 0;
+#if CONFIG_JK_ESP_DEBUG
+  if (jk_prof_start) {
+    jk_prof_start(); // PC histogram of core 0 (this task), dumped at deinit
+  }
+#endif
+  g_initialized = true;
+  fmt::print("snes: ROM loaded ({}), {} state bytes\n", snes_glue_pal() ? "PAL" : "NTSC", snes_glue_state_size());
+}
+
+void reset_snes() {
+  if (g_initialized) snes_glue_reset();
+}
+
+bool initialize_snes_storage(std::string_view hash) {
+  g_storage_ready=g_initialized && g_battery.configure("snes",hash,snes_glue_sram_size()) &&
+    g_battery.load(snes_glue_sram_data());
+  return g_storage_ready;
+}
+bool snes_loaded() {return g_initialized && g_storage_ready;}
+bool flush_snes_battery() {return g_storage_ready && g_battery.flush(snes_glue_sram_data());}
+uint32_t snes_frames() {return g_emulated_frames.load(std::memory_order_relaxed);}
+
+void run_snes_rom() {
+  if (!g_initialized) return;
+  const auto start = esp_timer_get_time();
+  const uint64_t frame_us = snes_glue_pal() ? 20000 : 16667;
+  // Fast frames repay late ones; reset an excessive debt after a pause.
+  if (g_next_due == 0 || start > g_next_due + 2 * frame_us) {
+    g_next_due = start;
+  }
+  const bool behind = start > g_next_due + frame_us / 4;
+  bool render = g_render_budget.should_render(behind,frame_us);
+  if(render && !BoxEmu::get().video_frame_available(snes_glue_next_screen()))render=false;
+  uint8_t *screen = render?snes_glue_screen_swap():nullptr;
+  snes_glue_run_frame(render);
+  g_emulated_frames.fetch_add(1,std::memory_order_relaxed);
+  if (render) {
+    const int w = snes_glue_width(), h = snes_glue_height();
+    if (w != g_last_w || h != g_last_h) {
+      BoxEmu::get().wait_frame();
+      BoxEmu::get().native_size(w, h, snes_glue_pitch() / 2);
+      g_last_w = w;
+      g_last_h = h;
+    }
+    g_last_frame = screen;
+    BoxEmu::get().push_frame(screen);
+  }
+  const auto end = esp_timer_get_time();
+  const uint64_t elapsed = end - start;
+  g_render_budget.completed(render,elapsed);
+  update_frame_time(elapsed);
+  if (render) {
+    g_rendered_frames++;
+    g_rendered_us += elapsed;
+  } else {
+    g_skipped_frames++;
+    g_skipped_us += elapsed;
+  }
+  g_next_due += frame_us;
+  if (end < g_next_due) {
+    std::this_thread::sleep_for(std::chrono::microseconds(g_next_due - end));
+  } else {
+    std::this_thread::yield();
+  }
+}
+
+bool load_snes(std::string_view save_path) {
+  if (!g_initialized || save_path.empty()) return false;
+  const auto expected=snes_glue_state_size();
+  tab5::content::FileBytes buf;
+  if (!tab5::content::read_exact_file(std::string(save_path), expected, buf)) return false;
+  if (!snes_glue_state_load(buf.data(), buf.size())) {
+    fmt::print("snes: state load failed ({} bytes, expected {})\n", buf.size(), snes_glue_state_size());
+    return false;
+  }
+  return true;
+}
+
+bool save_snes(std::string_view save_path) {
+  if (!g_initialized || save_path.empty()) return false;
+  std::vector<uint8_t> buf(snes_glue_state_size());
+  if (!snes_glue_state_save(buf.data(), buf.size())) return false;
+  return tab5::content::atomic_write(std::string(save_path),buf.data(),buf.size());
+}
+
+std::pair<size_t, size_t> get_snes_video_size() { return {static_cast<size_t>(g_last_w), static_cast<size_t>(g_last_h)}; }
+
+std::span<uint8_t> get_snes_video_buffer() {
+  if (!g_initialized || !g_last_frame) return {};
+  // the screenshot writer expects a packed frame; repack the pitch (into a
+  // buffer deinit_snes() frees: a static one stayed in the middle of the
+  // PSRAM heap after the game, splitting its largest block)
+  auto &packed = g_packed;
+  packed.resize(static_cast<size_t>(g_last_w) * g_last_h * 2);
+  for (int y = 0; y < g_last_h; y++) {
+    memcpy(packed.data() + static_cast<size_t>(y) * g_last_w * 2, g_last_frame + static_cast<size_t>(y) * snes_glue_pitch(),
+           static_cast<size_t>(g_last_w) * 2);
+  }
+  return packed;
+}
+
+void deinit_snes() {
+  if (!g_initialized) return;
+  if (g_storage_ready && !flush_snes_battery()) fmt::print("snes: battery flush failed; prior generation preserved\n");
+  g_battery.reset();g_storage_ready=false;
+#if CONFIG_JK_ESP_DEBUG
+  if (jk_prof_dump) {
+    jk_prof_dump(200);
+  }
+#endif
+  fmt::print("snes: {} rendered frames at {:.1f} ms, {} skipped frames at {:.1f} ms\n", g_rendered_frames,
+             g_rendered_frames ? g_rendered_us / 1000.0 / g_rendered_frames : 0.0, g_skipped_frames,
+             g_skipped_frames ? g_skipped_us / 1000.0 / g_skipped_frames : 0.0);
+  g_initialized = false;
+  snes_glue_deinit();
+  BoxEmu::get().audio_sample_rate(48000);
+  g_last_frame = nullptr;
+  std::vector<uint8_t>().swap(g_packed); // the screenshot buffer goes back too
+}

@@ -1,0 +1,4 @@
+idf_component_register(
+  INCLUDE_DIRS "include"
+  SRC_DIRS "src"
+  REQUIRES gui lvgl emu-ui timer logger tab5-emu statistics)

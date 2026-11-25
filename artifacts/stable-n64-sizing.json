@@ -1,0 +1,8 @@
+{
+  "profile": "stable-n64",
+  "image_bytes": 4411488,
+  "app4_reservation_bytes": 4063232,
+  "fits": false,
+  "installed": false,
+  "reason": "All mature cores plus N64 exceed the current reservation; SD overlays selected instead."
+}

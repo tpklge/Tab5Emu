@@ -1,0 +1,48 @@
+esptool v5.6.0
+Image size: 4000896 bytes
+
+ESP32-P4 Image Header
+=====================
+Image version: 1
+Entry point: 0x4ff00c96
+Segments: 7
+Flash size: 16MB
+Flash freq: 80m
+Flash mode: DIO
+
+ESP32-P4 Extended Image Header
+==============================
+WP pin: 0xee (disabled)
+Flash pins drive settings: clk_drv: 0x0, q_drv: 0x0, d_drv: 0x0, cs0_drv: 0x0, hd_drv: 0x0, wp_drv: 0x0
+Chip ID: 18 (ESP32-P4)
+Minimal chip revision: v0.1, (legacy min_rev = 0)
+Maximal chip revision: v1.99
+
+Segments Information
+====================
+Segment   Length   Load addr   File offs  Memory types
+-------  -------  ----------  ----------  ------------
+      0  0x281a20  0x40130020  0x00000018  DROM, IROM
+      1  0x000f0  0x30100000  0x00281a40  
+      2  0x0e4d8  0x4ff00000  0x00281b38  DRAM, BYTE_ACCESSIBLE, IRAM
+      3  0x12cf14  0x40000020  0x00290018  DROM, IROM
+      4  0x0cf38  0x4ff0e4d8  0x003bcf34  DRAM, BYTE_ACCESSIBLE, IRAM
+      5  0x06db4  0x4ff1b480  0x003c9e74  DRAM, BYTE_ACCESSIBLE, IRAM
+      6  0x00024  0x50108194  0x003d0c30  RTC_IRAM, RTC_DRAM
+
+ESP32-P4 Image Footer
+=====================
+Checksum: 0x8c (valid)
+Validation hash: 5af8368562c3f49c2e023c1060e564e78954250ad06c28c2480b59f2cf4863b6 (valid)
+
+Application Information
+=======================
+Project name: tab5-emu
+App version: 0.1.0
+Compile time: Nov 23 2026 03:29:33
+ELF file SHA256: f70ce96a9ed55348b82a3fa0a7727e9ea6e371678b497225b0468be9a9ddadaf
+ESP-IDF: v6.1
+Minimal eFuse block revision: 0.0
+Maximal eFuse block revision: 1.99
+MMU page size: 64 KB
+Secure version: 0

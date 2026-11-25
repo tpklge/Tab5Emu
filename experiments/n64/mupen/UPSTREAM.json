@@ -1,0 +1,5 @@
+{
+  "url": "https://github.com/mupen64plus/mupen64plus-core",
+  "commit": "daae68e2cc871cef4ac76e162c173894d052a28d",
+  "scope": "Unmodified upstream sources; only pure interpreter and CP1/CP2 built for the bounded CPU probe. No RSP/RDP/VI/audio/cart boot."
+}

@@ -1,0 +1,1 @@
+battery store: generations, raw legacy migration, SHA journal, equal-size corruption, interrupted publication, metadata recovery, rejected data and failed writers OK

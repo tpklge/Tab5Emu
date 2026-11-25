@@ -1,0 +1,63 @@
+name: Paludo stable app-only
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stable:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize stable submodules
+        run: git submodule update --init components/emu-ui components/emulink components/gbc/gnuboy components/genesis/gwenesis
+      - name: Checkout the pinned isolated SDK
+        uses: actions/checkout@v4
+        with:
+          repository: espressif/esp-idf
+          ref: fff9895c82d744c7237be8847347bdd1b07c6643
+          path: .tools/esp-idf
+          submodules: recursive
+      - name: Install host and P4 tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build clang flex bison gperf libusb-1.0-0 libffi-dev libssl-dev dfu-util
+          bash .tools/esp-idf/install.sh esp32p4
+          python3 -m venv .venv
+          .venv/bin/pip install -r tools/requirements-host.txt
+      - name: Build only the stable application
+        run: |
+          cp configs/sdkconfig.0.1.16 sdkconfig
+          bash tools/build.sh stable
+          .venv/bin/python tools/check_stable_artifact.py build-stable --report artifacts/ci-stable-image.json
+      - name: Host fault and regression tests
+        run: |
+          bash tools/test_host.sh
+          bash tools/test_n64_console_host.sh
+      - name: Package app, SD resources and exact source snapshot
+        env:
+          TAB5_CI_VERSION: 0.1.17-ci.${{ github.run_number }}
+        run: |
+          .venv/bin/python tools/source_bundle.py "dist/stable/Tab5Emu-source-${TAB5_CI_VERSION}.tar.gz"
+          .venv/bin/python tools/package.py --version "$TAB5_CI_VERSION" --profile stable --image build-stable/tab5-emu.bin --output dist/stable
+          .venv/bin/python tools/verify_package.py dist/stable --allow-dirty > artifacts/ci-package-verification.json
+      - name: Upload the app-only delivery
+        uses: actions/upload-artifact@v4
+        with:
+          name: paludo-stable-${{ github.run_number }}
+          path: dist/stable/
+          if-no-files-found: error
+      - name: Upload build and test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paludo-stable-evidence-${{ github.run_number }}
+          path: |
+            artifacts/host-*-tests.txt
+            artifacts/ci-*.json
+            artifacts/stable-size.json
+          if-no-files-found: warn

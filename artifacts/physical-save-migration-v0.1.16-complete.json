@@ -1,0 +1,43 @@
+{
+  "complete": true,
+  "elf_sha256": "884954de93057637d15b8101bf3680870ede738b12711e3f11dbe6b8d6833ade",
+  "systems": {
+    "gb": {
+      "complete": true,
+      "rom_sha256": "59e45dc308c95f4abaa815a7c1a6b0e9dfdb2a7afba2f00141e55274278a38f9",
+      "battery_before": 17,
+      "counter_after_imported_state": 18,
+      "battery_imported": true,
+      "legacy_state_source_bytes": 28672,
+      "migrated_state_bytes": 28672,
+      "state_load_restores_battery": true,
+      "source_preserved": true,
+      "raw_md_converted": false
+    },
+    "gbc": {
+      "complete": true,
+      "rom_sha256": "c92269abdc6c626bdff88425541fbcaca84abd8895bb10d0dd4faf9b864413a0",
+      "battery_before": 17,
+      "counter_after_imported_state": 18,
+      "battery_imported": true,
+      "legacy_state_source_bytes": 61440,
+      "migrated_state_bytes": 61440,
+      "state_load_restores_battery": true,
+      "source_preserved": true,
+      "raw_md_converted": false
+    },
+    "genesis": {
+      "complete": true,
+      "rom_sha256": "a6425fadd3c814b0ade796a3f767f58fda5f41a2a8c884e37f8d5457b7f014d3",
+      "battery_before": 17,
+      "counter_after_imported_state": 18,
+      "battery_imported": true,
+      "legacy_state_source_bytes": 146966,
+      "migrated_state_bytes": 155270,
+      "state_load_restores_battery": true,
+      "source_preserved": true,
+      "raw_md_converted": true
+    }
+  },
+  "catalog_restored": true
+}

@@ -1,0 +1,85 @@
+{
+  "sha256": "68d75dbdf38d19f4489d0d0085e421800d6a74ed498bd02a6ce58caac3ab3712",
+  "uploaded": true,
+  "received_hash_verified": true,
+  "installed": true,
+  "booted": true,
+  "return_confirmed": true,
+  "physical_tests": true,
+  "tests": {
+    "profile": "n64-cpu-probe",
+    "bytes": 4013392,
+    "slot_margin": 49840,
+    "cpu_probe": {
+      "firmware": "0.1.14",
+      "elf_sha256": "45c26dd3e702c7f093c056069ef64f5786278ac9e12dc1c6c37ef2c17c382ca0",
+      "fixture_sha256": "9c8d794f22356d396b5f7780a2538356f474503f1d250456e1da33bde4c36c47",
+      "passed": true,
+      "instructions": 22,
+      "core_bytes": 13635168,
+      "cause": 36,
+      "epc": 2147483736,
+      "elapsed_us": 106842,
+      "unsupported": "",
+      "unavailable_gb_gbc_hidden": true,
+      "menu_rom_count": 4
+    },
+    "legacy_updater_guard_and_touch_return": {
+      "guard_menu": {
+        "firmware": "0.1.14",
+        "elf_sha256": "45c26dd3e702c7f093c056069ef64f5786278ac9e12dc1c6c37ef2c17c382ca0",
+        "state": "menu",
+        "error": "Atualize este app pelo Launcher do Paludo; updater antigo indisponivel",
+        "uptime_before_ms": 20521,
+        "uptime_after_ms": 21037,
+        "same_firmware_and_game": true,
+        "no_reset": true,
+        "game_progress": false
+      },
+      "guard_game": {
+        "firmware": "0.1.14",
+        "elf_sha256": "45c26dd3e702c7f093c056069ef64f5786278ac9e12dc1c6c37ef2c17c382ca0",
+        "state": "game",
+        "error": "Atualize este app pelo Launcher do Paludo; updater antigo indisponivel",
+        "uptime_before_ms": 22149,
+        "uptime_after_ms": 22660,
+        "same_firmware_and_game": true,
+        "no_reset": true,
+        "game_progress": true
+      },
+      "touch_before": {
+        "counter_units": 1,
+        "marker": [
+          120,
+          110
+        ],
+        "marker_color": 65503
+      },
+      "touch_after": {
+        "counter_units": 2,
+        "marker": [
+          120,
+          110
+        ],
+        "marker_color": 65503
+      },
+      "pause_return_requested": true,
+      "native_usb_before_console": true,
+      "return_confirmed": true,
+      "reset": "SW_RESET"
+    },
+    "other_app_descriptors_unchanged": true,
+    "layout_sizes_unchanged": true,
+    "host_positive_instructions": 22,
+    "host_negative_checks": 5,
+    "host_asan_ubsan": true,
+    "restored_stable_sha256": "9c9ffdb457dccb96145a26283084f9769d44cbab1603bf97b762f35c5e36eb5d",
+    "restored_stable_elf": "eea38372e6a1fa6e0b722e3d476d9d346c7210fd2b44f766b11504f178c454a2",
+    "shared_data_preserved": true
+  },
+  "limitations": [
+    "Bounded CPU harness, not an N64 console emulator or game compatibility claim.",
+    "GB/GBC are omitted only in this diagnostic profile; stable restores them.",
+    "No TLB/interrupt scheduler, cartridge boot, VI, RSP/RDP, PIF/controller, audio or N64 saves."
+  ]
+}

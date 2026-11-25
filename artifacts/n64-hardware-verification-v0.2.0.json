@@ -1,0 +1,102 @@
+{
+  "profile": "n64",
+  "version": "0.2.0-n64",
+  "sha256": "c774e6f9bcfd9c15a2fb278e67947079bfeaa1d55c6ccacc01bb6a93ce5911e4",
+  "elf_sha256": "917ed3a68e8bdabc1a602eb6846023d9057929c14a8e3a46ed54f71cc2550865",
+  "image_bytes": 4025968,
+  "app4_reservation_bytes": 4063232,
+  "app_only": true,
+  "booted": true,
+  "hardware_tested": true,
+  "other_apps_preserved": true,
+  "layout_unchanged": true,
+  "homebrew": {
+    "complete": true,
+    "rom_sha256": "f0006c5a30bb1926a4759d2fc959aefb4ad4e908f3f333db9bb619aa314979c6",
+    "a_changes_rdp_color": true,
+    "state_rejected": "saving to slot 5 failed",
+    "battery_bytes": 198656,
+    "first_counter": 1,
+    "second_counter": 2,
+    "previous_battery_preserved": true,
+    "coredump_bytes": 0
+  },
+  "library_n64_games": 22,
+  "transferred_unique_games": 21,
+  "transferred_bytes": 465567744,
+  "all_rom_readbacks_sha256_verified": true,
+  "jit_compiled": false,
+  "gba_rv32_memory_manager_changed": false,
+  "battery_indicator": {
+    "lcd_estimated_percent_visible": true,
+    "real_power_present": true,
+    "real_pack_volts": 8.347,
+    "calibrated_fuel_gauge": false
+  },
+  "sm64": {
+    "complete": true,
+    "scenes_visually_verified": [
+      "3D title",
+      "VI blanking during load",
+      "animated 3D Mario head",
+      "fade after Start"
+    ],
+    "elapsed_s": 252.044,
+    "title_rate": {
+      "interval_s": 60.135,
+      "vi_frames": 124,
+      "vi_per_second": 2.062
+    },
+    "head_rate": {
+      "interval_s": 65.15,
+      "vi_frames": 73,
+      "vi_per_second": 1.12
+    },
+    "last_core_metrics": {
+      "backend": "mupen-pure-cxd4-software-rdp",
+      "instructions": 116115918,
+      "rsp_instructions": 114721870,
+      "rdp_lists": 214165,
+      "rom_reads": 146,
+      "exceptions": 2790,
+      "pc": 2149198312,
+      "vi_frames": 526,
+      "vi_width": 320,
+      "ai_buffers": 488,
+      "core_bytes": 434616
+    },
+    "audio": {
+      "source_rate": 32006,
+      "hardware_rate": 48000,
+      "source_frames": 272480,
+      "output_frames": 408652,
+      "dropped_bytes": 0,
+      "max_submit_gap_us": 2954099,
+      "clock_ticks": 0,
+      "clock_hz": 0
+    },
+    "audio_sink": {
+      "blocks": 14642,
+      "partial_blocks": 458,
+      "empty_blocks": 13701,
+      "missing_frames": 11307707,
+      "max_write_gap_us": 37468,
+      "write_errors": 0,
+      "late_blocks": 4903,
+      "late_frames": 1056264
+    },
+    "file_select_validated": false,
+    "gameplay_validated": false,
+    "coredump_bytes": 0,
+    "after_state": "menu",
+    "last_panic": ""
+  },
+  "final_state": "N64 library; 21 supplied games and one original diagnostic",
+  "stable_fallback": {
+    "version": "0.1.17",
+    "compiled_gate_passed": true,
+    "readback_verified_on_sd": true,
+    "hardware_tested": false,
+    "jit_compiled": false
+  }
+}

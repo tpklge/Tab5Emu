@@ -1,0 +1,44 @@
+{
+  "project": "tab5-emu",
+  "version": "0.2.3-perf",
+  "image_bytes": 2446880,
+  "sha256": "9bb912037b6aab7a296a1e9577981caf7a2063d4fd4fa0459568ba9da385d5f1",
+  "elf_sha256": "fe9092303ebe1f310840c135c280ea4a6be589a52d7993125864dd1d3678247a",
+  "cores": [
+    {
+      "core": "n64",
+      "file": "n64-808b34d782bb9a052ee439c2f479eecd5867ea5090977eeaebd7d18e30e1cc1e.bin",
+      "bytes": 501120,
+      "load_address": 1210183296,
+      "sha256": "808b34d782bb9a052ee439c2f479eecd5867ea5090977eeaebd7d18e30e1cc1e"
+    },
+    {
+      "core": "gba",
+      "file": "gba-73847971b2bf06d84c6a92fa505a41e49fbb2617b7a4fa9815864995b4646dcc.bin",
+      "bytes": 380160,
+      "load_address": 1210183296,
+      "sha256": "73847971b2bf06d84c6a92fa505a41e49fbb2617b7a4fa9815864995b4646dcc"
+    },
+    {
+      "core": "snes",
+      "file": "snes-946b01e5d32eae97f0dcc2eb58a15d552cf9887d068b087350ce84f43a8cfa48.bin",
+      "bytes": 403200,
+      "load_address": 1210183296,
+      "sha256": "946b01e5d32eae97f0dcc2eb58a15d552cf9887d068b087350ce84f43a8cfa48"
+    },
+    {
+      "core": "genesis",
+      "file": "genesis-092cf361284c3ac508726d6059d36e4f4727819eb149ac4b79e74678711e3390.bin",
+      "bytes": 762880,
+      "load_address": 1210183296,
+      "sha256": "092cf361284c3ac508726d6059d36e4f4727819eb149ac4b79e74678711e3390"
+    },
+    {
+      "core": "gbc",
+      "file": "gbc-def302d2400e77c3316d4aee1059813f38b26e13a7ab0017325d89d067a6c61a.bin",
+      "bytes": 70912,
+      "load_address": 1210183296,
+      "sha256": "def302d2400e77c3316d4aee1059813f38b26e13a7ab0017325d89d067a6c61a"
+    }
+  ]
+}
