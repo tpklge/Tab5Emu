@@ -26,3 +26,9 @@ class PublicReleaseTests(unittest.TestCase):
                 with tarfile.open(p,'w:gz') as archive:
                     info=tarfile.TarInfo('Tab5Emu-source/'+name);info.size=4;archive.addfile(info,io.BytesIO(b'test'))
                 with self.assertRaisesRegex(ValueError,'Private/ROM'):validate_source(p)
+    def test_platform_readme_is_documentation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            p=Path(directory)/'source.tar.gz'
+            with tarfile.open(p,'w:gz') as archive:
+                data=b'Nintendo 64 build instructions\n';info=tarfile.TarInfo('Tab5Emu-source/platform/README.N64');info.size=len(data);archive.addfile(info,io.BytesIO(data))
+            with self.assertRaisesRegex(ValueError,'Incomplete source'):validate_source(p)

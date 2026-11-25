@@ -26,7 +26,14 @@ def validate_source(path):
             if entry.name in names or not entry.isfile() or parts[0]!='Tab5Emu-source' or '..' in parts:
                 raise ValueError('Unsafe source archive entry: '+entry.name)
             names.add(entry.name)
-            if any(p in ('.git','.tools','ROMs','__pycache__') for p in parts) or '.local.' in entry.name or Path(entry.name).suffix.lower() in ROM_SUFFIXES:
+            documentation=False
+            if Path(entry.name).name.upper().startswith('README') and entry.size<256*1024:
+                try:
+                    content=archive.extractfile(entry).read().decode('utf-8')
+                    documentation='\0' not in content
+                except UnicodeError:
+                    pass
+            if any(p in ('.git','.tools','ROMs','__pycache__') for p in parts) or '.local.' in entry.name or (Path(entry.name).suffix.lower() in ROM_SUFFIXES and not documentation):
                 raise ValueError('Private/ROM file in source archive: '+entry.name)
         required={'LICENSE','NOTICE','SOURCE_MANIFEST.json','components/sm64_native/src/port.c',
                   'third_party/sm64-native-reference/sm64-go/components/sm64-funkey/src/pc/gfx/gfx_soft.c'}
