@@ -40,6 +40,9 @@ jobs:
           bash tools/build.sh stable
           .venv/bin/python tools/check_stable_artifact.py build-stable --report artifacts/ci-stable-image.json
       - name: Host fault and regression tests
+        env:
+          CC: clang
+          CXX: clang++
         run: |
           bash tools/test_host.sh
           bash tools/test_n64_console_host.sh

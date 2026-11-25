@@ -23,10 +23,10 @@ for tab5_n64_source in "$tab5_n64_temp"/stage/device/r4300/{pure_interp,cp1,cp2}
   "$tab5_n64_temp"/stage/rdp/n64video.c components/n64/src/{n64_console,n64_plugins}.c \
   experiments/n64/mupen/src/device/pif/{cic,n64_cic_nus_6105}.c; do
   tab5_n64_object="$tab5_n64_temp/$(basename "$tab5_n64_source").o"
-  cc "${tab5_n64_sdk[@]}" "${tab5_n64_flags[@]}" -c "$tab5_n64_source" -o "$tab5_n64_object"
+  "${CC:-cc}" "${tab5_n64_sdk[@]}" "${tab5_n64_flags[@]}" -c "$tab5_n64_source" -o "$tab5_n64_object"
   tab5_n64_objects+=("$tab5_n64_object")
 done
-cc "${tab5_n64_sdk[@]}" "${tab5_n64_flags[@]}" tests/test_n64_console.c "${tab5_n64_objects[@]}" -lm -o "$tab5_n64_temp/test"
+"${CC:-cc}" "${tab5_n64_sdk[@]}" "${tab5_n64_flags[@]}" tests/test_n64_console.c "${tab5_n64_objects[@]}" -lm -o "$tab5_n64_temp/test"
 tab5_n64_fixture="$($tab5_n64_python -c 'import json; print(json.load(open("artifacts/test-roms/tab5-n64-console-manifest.json"))["file"])')"
 UBSAN_OPTIONS=halt_on_error=1 "$tab5_n64_temp/test" "artifacts/test-roms/$tab5_n64_fixture" > artifacts/host-n64-console-tests.txt
 cat artifacts/host-n64-console-tests.txt

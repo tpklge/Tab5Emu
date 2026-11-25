@@ -46,7 +46,10 @@ int main(int argc,char **argv){
     ++index;std::ifstream f(std::string(argv[1])+"/"+board+".md",std::ios::binary);
     std::vector<uint8_t> rom((std::istreambuf_iterator<char>(f)),{});assert(rom.size()==32768);
     const auto selected=tab5::md::SerialEeprom::identify(rom.data(),rom.size());assert(unsigned(selected)==index);
-    for(size_t i=0;i<rom.size();++i)ROM_DATA[i^1]=rom[i];tab5_md_fast_rom_end=rom.size();
+    for(size_t i=0;i<rom.size();++i) {
+      ROM_DATA[i^1]=rom[i];
+    }
+    tab5_md_fast_rom_end=rom.size();
     std::array<uint8_t,256> battery;battery.fill(255);chip.configure(selected,battery.data());
     for(unsigned boot=1;boot<=2;++boot){
       chip.reset();std::memset(M68K_RAM,0,65536);std::memset(m68k,0,sizeof(*m68k));
