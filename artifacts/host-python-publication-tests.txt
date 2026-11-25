@@ -57,6 +57,7 @@ test_wifi_reconnect_is_bounded_and_precedes_upload (test_paludo.ContractTest.tes
   _warnings.warn(self.warn_message, ResourceWarning)
 ok
 test_native_app_requires_explicit_project_and_valid_digest (test_public_release.PublicReleaseTests.test_native_app_requires_explicit_project_and_valid_digest) ... ok
+test_platform_readme_is_documentation (test_public_release.PublicReleaseTests.test_platform_readme_is_documentation) ... ok
 test_rom_and_private_source_entries_are_rejected (test_public_release.PublicReleaseTests.test_rom_and_private_source_entries_are_rejected) ... ok
 test_failed_write_rolls_back_only_own_files (test_save_migration.MigrationTests.test_failed_write_rolls_back_only_own_files) ... ok
 test_fixture_catalog_rolls_back_after_test_failure (test_save_migration.MigrationTests.test_fixture_catalog_rolls_back_after_test_failure) ... ok
@@ -77,6 +78,7 @@ test_bounds (test_sd_core_format.CoreFormatTests.test_bounds) ... ok
 test_fixed_image_and_address_binding (test_sd_core_format.CoreFormatTests.test_fixed_image_and_address_binding) ... ok
 test_native_assets_opt_into_larger_bounded_payload (test_sd_core_format.CoreFormatTests.test_native_assets_opt_into_larger_bounded_payload) ... ok
 test_optional_component_does_not_require_private_assets (test_sm64_build_gate.NativeBuildGate.test_optional_component_does_not_require_private_assets) ... ok
+test_optional_scummvm_does_not_load_sources_during_discovery (test_sm64_build_gate.NativeBuildGate.test_optional_scummvm_does_not_load_sources_during_discovery) ... ok
 test_drift_cannot_replace_the_previous_generated_header (test_stable_artifact.AudioStageTest.test_drift_cannot_replace_the_previous_generated_header) ... ok
 test_real_pinned_feeder_keeps_ring_and_uses_one_frame_wait (test_stable_artifact.AudioStageTest.test_real_pinned_feeder_keeps_ring_and_uses_one_frame_wait) ... ok
 test_pinned_loader_gets_sram_failure_guard (test_stable_artifact.GbLoaderStageTest.test_pinned_loader_gets_sram_failure_guard) ... ok
@@ -87,6 +89,6 @@ test_rejects_growth_and_shrink_of_reservation (test_stable_artifact.StableGateTe
 test_rejects_other_profile (test_stable_artifact.StableGateTest.test_rejects_other_profile) ... ok
 
 ----------------------------------------------------------------------
-Ran 76 tests in 0.378s
+Ran 78 tests in 0.402s
 
 OK

@@ -1,6 +1,10 @@
 # ScummVM (esp-cpp/scummvm, branch esp32p4: the backend is in
 # scummvm/backends/platform/esp32), built with the Star Trek engine (25th
 # Anniversary / Judgment Rites)
+if(CMAKE_BUILD_EARLY_EXPANSION)
+  idf_component_register(REQUIRES tab5-emu esp_timer)
+  return()
+endif()
 set(SVM "${CMAKE_CURRENT_LIST_DIR}/scummvm")
 include(${SVM}/backends/platform/esp32/sources.cmake)
 list(TRANSFORM SCUMMVM_SOURCES PREPEND "scummvm/")
