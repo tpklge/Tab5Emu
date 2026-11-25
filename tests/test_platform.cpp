@@ -20,6 +20,7 @@
 #include <iostream>
 #include <thread>
 #include <future>
+#include <vector>
 
 int main() {
   for(auto profile:{tab5::input::Profile::Snes,tab5::input::Profile::Gba,tab5::input::Profile::N64}){
