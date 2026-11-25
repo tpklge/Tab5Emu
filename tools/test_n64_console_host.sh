@@ -11,7 +11,7 @@ if [[ "$(uname)" == Darwin && -d /Library/Developer/CommandLineTools/SDKs/MacOSX
 fi
 "$tab5_n64_python" tools/build_n64_console_rom.py > artifacts/n64-console-fixture-build.log
 "$tab5_n64_python" tools/stage_n64.py "$tab5_n64_temp/stage"
-tab5_n64_flags=(-O2 -std=c11 -fwrapv -fno-strict-aliasing -fsanitize=address,undefined
+tab5_n64_flags=(-O2 -std=c11 -D_POSIX_C_SOURCE=200809L -fwrapv -fno-strict-aliasing -fsanitize=address,undefined
   -DNO_ASM -DUSE_CLIENT_ENDIAN -DPLUGIN_API_VERSION=0x0101
   -I "$tab5_n64_temp/stage" -I "$tab5_n64_temp/stage/device/r4300"
   -I "$tab5_n64_temp/stage/rsp" -I "$tab5_n64_temp/stage/rdp"
