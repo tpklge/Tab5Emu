@@ -1,3 +1,4 @@
+#include <array>
 #include "md_eeprom.hpp"
 #include <algorithm>
 #include <cassert>

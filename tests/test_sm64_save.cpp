@@ -1,3 +1,5 @@
+#include <array>
+#include <span>
 #include "sm64_save.hpp"
 #include <cassert>
 #include <cstdio>

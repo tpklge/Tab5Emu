@@ -1,15 +1,36 @@
 import hashlib
 import io
+import json
 import sys
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
 from package import check_image
 from package_github_release import validate_source
+from prepare_release_inputs import restore_managed
 
 class PublicReleaseTests(unittest.TestCase):
+    def test_ci_managed_sources_require_matching_manifest(self):
+        for payload in (b'public source', b'changed source'):
+            with self.subTest(payload=payload), tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);snapshot=root/'stable.tar.gz'
+                relative='managed_components/example/source.c'
+                proof={'files':[{'path':relative,'size':len(b'public source'),
+                                 'sha256':hashlib.sha256(b'public source').hexdigest()}]}
+                with tarfile.open(snapshot,'w:gz') as archive:
+                    for name,data in [('SOURCE_MANIFEST.json',json.dumps(proof).encode()),(relative,payload)]:
+                        entry=tarfile.TarInfo('Tab5Emu-source/'+name);entry.size=len(data)
+                        archive.addfile(entry,io.BytesIO(data))
+                with patch('prepare_release_inputs.ROOT',root):
+                    if payload==b'public source':
+                        self.assertEqual(restore_managed(snapshot),1)
+                        self.assertEqual((root/relative).read_bytes(),payload)
+                    else:
+                        with self.assertRaisesRegex(ValueError,'hash differs'):restore_managed(snapshot)
+                        self.assertFalse((root/relative).exists())
     def test_native_app_requires_explicit_project_and_valid_digest(self):
         data=bytearray(288);data[0]=0xe9;data[12:14]=b'\x12\0';data[23]=1;data[80:89]=b'tab5-sm64'
         data[-32:]=hashlib.sha256(data[:-32]).digest()

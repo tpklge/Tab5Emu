@@ -1,3 +1,5 @@
+#include <array>
+#include <string_view>
 #include "battery_store.hpp"
 #include "content_paths.hpp"
 #include <cassert>

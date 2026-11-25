@@ -4,6 +4,11 @@ on:
   pull_request:
   push:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Optional existing draft release to package (v0.2.3)'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -61,3 +66,32 @@ jobs:
             artifacts/ci-*.json
             artifacts/stable-size.json
           if-no-files-found: warn
+
+  release:
+    needs: stable
+    if: github.event_name == 'workflow_dispatch' && inputs.release_tag != ''
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize all pinned source dependencies
+        run: git submodule update --init --jobs 4
+      - uses: actions/download-artifact@v4
+        with:
+          name: paludo-stable-${{ github.run_number }}
+          path: .tools/release-inputs/stable
+      - name: Restore managed sources and verified hardware binaries
+        run: |
+          test "$RELEASE_TAG" = v0.2.3
+          gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft' | grep -qx true
+          gh release download "$RELEASE_TAG" --dir .tools/release-inputs/assets --pattern 'tab5-emu-v0.2.3-perf.bin' --pattern 'tab5-sm64-v0.1.0-native.bin' --pattern 'Tab5Emu-microSD-v0.2.3.zip'
+          python3 tools/prepare_release_inputs.py --stable .tools/release-inputs/stable --assets .tools/release-inputs/assets
+      - name: Package complete source and matching release assets
+        run: python3 tools/package_github_release.py --output dist/github-release
+      - name: Attach verified packages, keeping release in draft
+        run: gh release upload "$RELEASE_TAG" dist/github-release/* --clobber

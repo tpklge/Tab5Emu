@@ -40,3 +40,5 @@ idf.py -B build-sd-cores -D TAB5_PROFILE=sd-cores -D TAB5_SD_RESERVE_BYTES=0 app
 A reserva histórica de app4 não faz parte desse binário. Consulte sempre o plano atual do Launcher antes de instalar.
 
 A publicação contém testes e evidências sanitizadas. ROMs, saves pessoais, capturas de jogos, dumps do aparelho, credenciais, arquivos `.local.*` e recursos gerados da ROM SM64 permanecem locais. `SHA256SUMS` permite conferir os downloads.
+
+O workflow `Paludo stable app-only` aceita `release_tag=v0.2.3` no disparo manual para preparar os arquivos de uma release existente em rascunho. Depois de compilar e testar o stable, ele reúne todos os submódulos fixados e os fontes gerenciados, recupera os binários e núcleos já conferidos no aparelho e gera o pacote completo no GitHub. O processo mantém a release em rascunho para permitir a conferência dos hashes antes da publicação.

@@ -1,3 +1,6 @@
+#include <array>
+#include <span>
+#include <vector>
 #include "md_sram.hpp"
 #include "md_pad_protocol.h"
 #include "md_rom.hpp"

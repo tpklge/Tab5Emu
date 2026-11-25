@@ -1,3 +1,4 @@
+#include <array>
 #include "content_paths.hpp"
 #include "battery_level.hpp"
 #include "content_storage.hpp"

@@ -1,3 +1,5 @@
+#include <span>
+#include <vector>
 #include "rom_info.hpp"
 #include "content_paths.hpp"
 #include "library_index.hpp"

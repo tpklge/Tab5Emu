@@ -1,3 +1,4 @@
+#include <vector>
 #include "settings_json.hpp"
 #include <cassert>
 #include <iostream>

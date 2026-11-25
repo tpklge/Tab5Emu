@@ -1,3 +1,4 @@
+#include <array>
 // Run original serial-save fixtures through the actual staged M68000 core.
 #include "md_eeprom.hpp"
 extern "C" {
